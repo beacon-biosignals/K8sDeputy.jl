@@ -20,7 +20,7 @@ end
         @test !deputy.shutting_down
     end
 
-    @testset "live_endpoint / ready_endpoint" begin
+    @testset "liveness_endpoint / readiness_endpoint" begin
         deputy = Deputy()
         request = HTTP.Request()
 
@@ -28,22 +28,22 @@ end
         # TODO: Define `==(x::HTTP.Response, y::HTTP.Response)`.
 
         deputy.ready = false
-        r = ready_endpoint(deputy)(request)
+        r = readiness_endpoint(deputy)(request)
         @test r.status == 503
         @test isempty(String(r.body))
 
         deputy.ready = true
-        r = ready_endpoint(deputy)(request)
+        r = readiness_endpoint(deputy)(request)
         @test r.status == 200
         @test isempty(String(r.body))
 
         deputy.shutting_down = false
-        r = live_endpoint(deputy)(request)
+        r = liveness_endpoint(deputy)(request)
         @test r.status == 200
         @test isempty(String(r.body))
 
         deputy.shutting_down = true
-        r = live_endpoint(deputy)(request)
+        r = liveness_endpoint(deputy)(request)
         @test r.status == 503
         @test isempty(String(r.body))
     end

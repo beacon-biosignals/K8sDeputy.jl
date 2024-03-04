@@ -40,7 +40,7 @@ function shutdown(deputy::Deputy)
     return nothing
 end
 
-function live_endpoint(deputy::Deputy)
+function liveness_endpoint(deputy::Deputy)
     return function (r::HTTP.Request)
         @debug "liveness probed"
         return if !deputy.shutting_down
@@ -51,7 +51,7 @@ function live_endpoint(deputy::Deputy)
     end
 end
 
-function ready_endpoint(deputy::Deputy)
+function readiness_endpoint(deputy::Deputy)
     return function (r::HTTP.Request)
         @debug "readiness probed"
         return if deputy.ready
