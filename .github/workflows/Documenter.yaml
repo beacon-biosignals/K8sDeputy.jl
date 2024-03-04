@@ -1,0 +1,58 @@
+---
+name: Documenter
+on:
+  workflow_dispatch:
+  push:
+    tags: ["*"]
+    branches:
+      - main
+    paths:
+      - "docs/**"
+      - "src/**"
+      - "Project.toml"
+      - ".github/workflows/Documenter.yaml"
+  pull_request:
+    paths:
+      - "docs/**"
+      - "src/**"
+      - "Project.toml"
+      - ".github/workflows/Documenter.yaml"
+      - ".github/workflows/DocPreviewCleanup.yaml"
+jobs:
+  docs:
+    name: Build
+    # These permissions are needed to:
+    # - Delete old caches: https://github.com/julia-actions/cache#usage
+    permissions:
+      actions: write
+      contents: read
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: julia-actions/setup-julia@v1
+        with:
+          version: "1"
+          show-versioninfo: true
+      - uses: julia-actions/cache@v1
+      - name: Install dependencies
+        shell: julia --project=docs --color=yes {0}
+        run: |
+          using Pkg
+          Pkg.develop(PackageSpec(path=pwd()))
+          Pkg.instantiate()
+      - name: Build docs
+        uses: julia-actions/julia-docdeploy@v1
+        with:
+          install-package: false  # Avoid instantiating twice
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Preview URL
+        if: ${{ github.event_name == 'pull_request' }}
+        run: |
+          repo_owner="${repo%/*}"  # e.g. JuliaLang
+          repo_name="${repo#*/}"  # e.g. Example.jl
+          echo ":books: Documentation preview available at:" | tee -a "$GITHUB_STEP_SUMMARY"
+          echo "<https://${repo_owner}.github.io/${repo_name}/previews/PR${PR}>" | tee -a "$GITHUB_STEP_SUMMARY"
+        env:
+          repo: ${{ github.repository }}  # e.g. JuliaLang/Example.jl
+          PR: ${{ github.event.number }}
