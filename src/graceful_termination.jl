@@ -31,12 +31,20 @@ end
 uv_kill(pid::Integer, signum::Integer) = ccall(:uv_kill, Cint, (Cint, Cint), pid, signum)
 
 """
-    graceful_terminator(f) -> Nothing
+    graceful_terminator(f; set_entrypoint::Bool=true) -> Nothing
 
 Register a zero-argument function to be called when `graceful_terminate` is called targeting
 this process. The user-defined function `f` is expected to call `exit` to terminate the
 Julia process. The `graceful_terminator` function is only allowed to be called once within a
 Julia process.
+
+## Keywords
+
+- `set_entrypoint::Bool` (optional): Sets the calling Julia process as the "entrypoint" to
+  be targeted by default when running `graceful_terminate` in another Julia process. Users
+  who want to utilize `graceful_terminator` in multiple Julia processes should use
+  `set_entrypoint=false` and specify process IDs when calling `graceful_terminate`. Defaults
+  to `true`.
 
 ## Examples
 
