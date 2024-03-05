@@ -98,6 +98,8 @@ function graceful_terminator(f; set_entrypoint::Bool=true)
                     @error "User graceful terminator callback failed with exception:\n" *
                            sprint(showerror, e, catch_backtrace())
                 end
+            else
+                @warn "Graceful terminator received an invalid request: \"$request\""
             end
 
             close(sock)
