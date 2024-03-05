@@ -163,28 +163,28 @@ end
         server = serve!(deputy, localhost, port)
 
         try
-            r = HTTP.get("http://localhost:$port/health/ready"; status_exception=false)
+            r = HTTP.get("http://$localhost:$port/health/ready"; status_exception=false)
             @test r.status == 503
 
-            r = HTTP.get("http://localhost:$port/health/live")
+            r = HTTP.get("http://$localhost:$port/health/live")
             @test r.status == 200
 
             readied(deputy)
 
-            r = HTTP.get("http://localhost:$port/health/ready")
+            r = HTTP.get("http://$localhost:$port/health/ready")
             @test r.status == 200
 
-            r = HTTP.get("http://localhost:$port/health/live")
+            r = HTTP.get("http://$localhost:$port/health/live")
             @test r.status == 200
 
             # Faking shutting down. Normal usage would call `shutdown` but we don't want to
             # terminate our test process.
             deputy.shutting_down = true
 
-            r = HTTP.get("http://localhost:$port/health/ready")
+            r = HTTP.get("http://$localhost:$port/health/ready")
             @test r.status == 200
 
-            r = HTTP.get("http://localhost:$port/health/live"; status_exception=false)
+            r = HTTP.get("http://$localhost:$port/health/live"; status_exception=false)
             @test r.status == 503
         finally
             close(server)
@@ -215,7 +215,7 @@ end
         p = run(pipeline(cmd; stdout=buffer, stderr=buffer); wait=false)
         @test timedwait(() -> process_running(p), Second(5)) === :ok
         @test timedwait(Second(10)) do
-            r = HTTP.get("http://localhost:$port/health/ready"; status_exception=false)
+            r = HTTP.get("http://$localhost:$port/health/ready"; status_exception=false)
             return r.status == 200
         end === :ok
 
@@ -225,7 +225,7 @@ end
 
         output = String(take!(buffer))
         expected = """
-            [ Info: Listening on: 127.0.0.1:$port, thread id: 1
+            [ Info: Listening on: $localhost:$port, thread id: 1
             [ Info: GRACEFUL TERMINATION HANDLER
             [ Info: SHUTDOWN HANDLER
             [ Info: SHUTDOWN COMPLETE
