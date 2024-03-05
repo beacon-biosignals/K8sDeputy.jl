@@ -1,7 +1,7 @@
 using Aqua: Aqua
 using Dates: Second
 using K8sDeputy
-using K8sDeputy: ready_endpoint, live_endpoint, serve!
+using K8sDeputy: readiness_endpoint, liveness_endpoint, serve!
 using HTTP: HTTP
 using Mocking: Mocking, @mock, @patch, apply
 using Sockets: localhost
