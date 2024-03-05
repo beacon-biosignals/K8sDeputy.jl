@@ -131,7 +131,6 @@ function graceful_terminate(pid::Integer=entrypoint_pid(); wait::Bool=true)
     #     println(io, "preStop called")
     # end
 
-
     sock = connect(_socket_path("graceful-terminator.$pid"))
     println(sock, "terminate")
     close(sock)
