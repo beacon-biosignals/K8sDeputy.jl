@@ -119,12 +119,16 @@ Initiates the execution of the `graceful_terminator` user callback in the proces
 `graceful_terminator` for more details.
 """
 function graceful_terminate(pid::Integer=entrypoint_pid(); wait::Bool=true)
+    # Note: The follow dead code has been left here purposefully as an example of how to
+    # view output when running via `preStop`.
+    #
     # As K8s doesn't provide a way to view the logs from the `preStop` command you can work
     # a round this by writing to the STDOUT of the `pid`. Only works while `pid` is running.
     # https://stackoverflow.com/a/70708744
     # open("/proc/$pid/fd/1", "w") do io
     #     println(io, "preStop called")
     # end
+
 
     sock = connect(_socket_path("graceful-terminator.$pid"))
     println(sock, "terminate")
