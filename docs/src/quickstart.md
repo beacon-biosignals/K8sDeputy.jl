@@ -28,13 +28,11 @@ For users who want to get started quickly you can use the following template to 
        - name: app
          command: ["/bin/sh", "-c", "julia entrypoint.jl; sleep 1"]
          env:
-           - name: DEPUTY_HEALTH_CHECK_PORT
-             value: "44444"
            - name: DEPUTY_IPC_DIR
              value: /mnt/deputy-ipc
          ports:
            - name: health-check
-             containerPort: 44444  # Must match ENV `DEPUTY_HEALTH_CHECK_PORT`
+             containerPort: 8081  # Default K8sDeputy.jl heath check port
              protocol: TCP
          livenessProbe:
            httpGet:
