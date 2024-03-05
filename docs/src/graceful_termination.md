@@ -57,7 +57,7 @@ spec:
         preStop:
           exec:
             command: ["julia", "-e", "using K8sDeputy; graceful_terminate()"]
-      # terminationGracePeriodSeconds: 30
+  # terminationGracePeriodSeconds: 30
 ```
 
 !!! note
@@ -66,3 +66,32 @@ spec:
 
 Finally, the entrypoint for the container should also not directly use the Julia as [init](https://en.wikipedia.org/wiki/Init) process (PID 1). Instead, users should define their entrypoint similarly to
 `["/bin/sh", "-c", "julia entrypoint.jl; sleep 1"]` as this allows the both the Julia process and the `preStop` process to cleanly terminate.
+
+### Read-only Filesystem
+
+If you a read-only filesystem on your container you'll need to configure a writeable volume mount for K8sDeputy.jl. The `DEPUTY_IPC_DIR` environmental variable can be used to instruct K8sDeputy.jl where to store the named pipes it creates for interprocess communication:
+
+```yaml
+apiVersion: v1
+kind: Pod
+spec:
+  containers:
+    - name: app
+      # command: ["/bin/sh", "-c", "julia entrypoint.jl; sleep 1"]
+      env:
+        - name: DEPUTY_IPC_DIR
+          value: /mnt/deputy-ipc
+      lifecycle:
+        preStop:
+          exec:
+            command: ["julia", "-e", "using K8sDeputy; graceful_terminate()"]
+      securityContext:
+        readOnlyRootFilesystem: true
+      volumeMounts:
+        - mountPath: /mnt/deputy-ipc
+          name: deputy-ipc
+  volumes:
+    - name: deputy-ipc
+      emptyDir:
+        medium: Memory
+```

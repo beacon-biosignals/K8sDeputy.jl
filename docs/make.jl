@@ -2,6 +2,7 @@ using K8sDeputy
 using Documenter
 
 pages = ["Home" => "index.md",
+         "Quickstart" => "quickstart.md",
          "Health Checks" => "health_checks.md",
          "Graceful Termination" => "graceful_termination.md",
          "API" => "api.md"]
