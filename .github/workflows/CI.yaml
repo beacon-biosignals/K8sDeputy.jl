@@ -23,7 +23,7 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: ${{ startsWith(github.ref, 'refs/pull/') }}
 jobs:
-  test:
+  unit-test:
     name: Julia ${{ matrix.version }} - ${{ matrix.runs-on }} - ${{ matrix.arch }} - ${{ matrix.threads}} threads
     # These permissions are needed to:
     # - Delete old caches: https://github.com/julia-actions/cache#cache-retention
@@ -44,6 +44,7 @@ jobs:
         threads:
           - 1
     env:
+      RUN_TESTS: unit,quality-assurance
       JULIA_NUM_THREADS: ${{ matrix.threads }}
     steps:
       - uses: actions/checkout@v4
@@ -60,6 +61,11 @@ jobs:
 
   integration-test:
     name: Integration Test - Julia ${{ matrix.julia-version }} - K8s ${{ matrix.k8s-version }} - minikube ${{ matrix.minikube-version }}
+    # These permissions are needed to:
+    # - Delete old caches: https://github.com/julia-actions/cache#cache-retention
+    permissions:
+      actions: write
+      contents: read
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -76,9 +82,14 @@ jobs:
         minikube-version:
           - "1.32.0"
     env:
+      RUN_TESTS: integration
       SKAFFOLD_INTERACTIVE: "false"  # Disable survey prompts
     steps:
       - uses: actions/checkout@v4
+      - uses: julia-actions/setup-julia@v1
+        with:
+          version: ${{ matrix.julia-version }}
+      - uses: julia-actions/cache@v1
       - uses: yokawasa/action-setup-kube-tools@v0.11.0
         with:
           setup-tools: |-
@@ -106,3 +117,8 @@ jobs:
           JULIA_VERSION: ${{ matrix.julia-version }}
         run: skaffold build
         working-directory: test/integration
+      - uses: julia-actions/julia-runtest@v1
+      - uses: julia-actions/julia-processcoverage@v1
+      - uses: codecov/codecov-action@v3
+        with:
+          file: lcov.info
