@@ -84,6 +84,9 @@ jobs:
             skaffold
           kubectl: "1.29.2"  # https://github.com/kubernetes/kubernetes/releases
           skaffold: "2.10.1"  # https://github.com/GoogleContainerTools/skaffold/releases
+      # https://skaffold.dev/docs/resources/telemetry/
+      - name: Disable Skaffold telemetry
+        run: skaffold config set --global collect-metrics false
 
       # Factors influencing the setup of the local Kubernetes cluster:
       # - Limited resources on GitHub runners only allow running a 1 pod at a time with
