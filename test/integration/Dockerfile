@@ -10,7 +10,7 @@ FROM julia:${JULIA_VERSION}-bookworm
 RUN julia -e 'using Pkg; Pkg.Registry.add("General")'
 
 ENV JULIA_PROJECT=/root/K8sDeputy
-COPY Project.toml Manifest.toml ${JULIA_PROJECT}/
+COPY Project.toml *Manifest.toml ${JULIA_PROJECT}/
 RUN julia -e 'using Pkg; Pkg.Registry.update(); Pkg.instantiate(); Pkg.build(); Pkg.precompile(strict=true, timing=true)'
 
 COPY . ${JULIA_PROJECT}
