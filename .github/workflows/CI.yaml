@@ -97,5 +97,7 @@ jobs:
           driver: docker
           # start args: --nodes=1 --cni=kindnet
       - name: Build image
+        env:
+          JULIA_VERSION: ${{ matrix.julia-version }}
         run: skaffold build
         working-directory: test/integration

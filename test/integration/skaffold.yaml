@@ -6,6 +6,9 @@ build:
   artifacts:
     - image: k8s-deputy
       context: ../..
+      docker:
+        buildArgs:
+          JULIA_VERSION: "{{.JULIA_VERSION}}"
   local:
     useBuildkit: true
     push: false
