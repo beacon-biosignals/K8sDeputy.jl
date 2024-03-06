@@ -57,3 +57,45 @@ jobs:
       - uses: codecov/codecov-action@v3
         with:
           file: lcov.info
+
+  integration-test:
+    name: Integration Test - Julia ${{ matrix.julia-version }} - K8s ${{ matrix.k8s-version }} - minikube ${{ matrix.minikube-version }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        julia-version:
+          - "1"
+        # Support the latest versions of the supported releases: https://kubernetes.io/releases/.
+        # These must be full version numbers including the patch.
+        k8s-version:
+          # - "1.27.11"
+          # - "1.28.7"
+          - "1.29.2"
+        # https://github.com/kubernetes/minikube/releases
+        minikube-version:
+          - "1.32.0"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: yokawasa/action-setup-kube-tools@v0.11.0
+        with:
+          setup-tools: |-
+            kubectl
+            skaffold
+          kubectl: "1.29.2"  # https://github.com/kubernetes/kubernetes/releases
+          skaffold: "2.10.1"  # https://github.com/GoogleContainerTools/skaffold/releases
+
+      # Factors influencing the setup of the local Kubernetes cluster:
+      # - Limited resources on GitHub runners only allow running a 1 pod at a time with
+      #   the default minikube install (additional pods are stuck as "Pending")
+      # - minikube restricts max CPUs per node to the number of CPUs on the host
+      - name: Set up minikube
+        uses: manusa/actions-setup-minikube@v2.10.0
+        with:
+          minikube version: v${{ matrix.minikube-version }}
+          kubernetes version: v${{ matrix.k8s-version }}
+          driver: docker
+          # start args: --nodes=1 --cni=kindnet
+      - name: Build image
+        run: skaffold build
+        working-directory: test/integration
