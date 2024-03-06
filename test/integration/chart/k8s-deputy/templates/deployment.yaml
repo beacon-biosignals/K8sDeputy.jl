@@ -1,3 +1,4 @@
+{{- if eq .Values.type "deployment" }}
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -30,35 +31,44 @@ spec:
             {{- toYaml .Values.securityContext | nindent 12 }}
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
-          # Wait after Julia process exits to allow `preStop` to complete
-          command: ["/bin/sh", "-c", "julia entrypoint.jl; sleep 1"]
+          {{- with .Values.command }}
+          command:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
           env:
             - name: JULIA_NUM_THREADS
-              value: "{ .Values.threads }}"
+              value: "{{ .Values.threads }}"
             - name: DEPUTY_HEALTH_CHECK_PORT
-              value: {{ .Values.probe.port | quote }}
-            - name: DEPUTY_IPC_DIR
-              value: /mnt/deputy-ipc
+              value: {{ .Values.healthCheckPort | quote }}
+            {{- range $key, $value := .Values.env }}
+            - name: {{ $key }}
+              value: {{ $value | quote }}
+            {{- end }} 
           ports:
-            - name: probe
-              containerPort: {{ .Values.probe.port }}
+            - name: health-check
+              containerPort: {{ .Values.healthCheckPort }}
               protocol: TCP
+          {{- with .Values.livenessProbe }}
           livenessProbe:
-            httpGet:
-              path: /health/live
-              port: probe
-            timeoutSeconds: 5
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- with .Values.readinessProbe }}
+          readinessProbe:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- with .Values.lifecycle }}
           lifecycle:
-            preStop:
-              exec:
-                command: ["julia", "-e", "using K8sDeputy; graceful_terminate()"]
+            {{- include "toYamlPretty" . | nindent 12 }}
+          {{- end }}
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
           {{- with .Values.volumeMounts }}
           volumeMounts:
             {{- toYaml . | nindent 12 }}
           {{- end }}
-      terminationGracePeriodSeconds: 30
+      {{- with .Values.terminationGracePeriodSeconds }}
+      terminationGracePeriodSeconds: {{ . }}
+      {{- end }}
       {{- with .Values.volumes }}
       volumes:
         {{- toYaml . | nindent 8 }}
@@ -75,3 +85,4 @@ spec:
       tolerations:
         {{- toYaml . | nindent 8 }}
       {{- end }}
+{{- end }}

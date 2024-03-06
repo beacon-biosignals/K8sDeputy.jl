@@ -2,7 +2,9 @@
 # This is a YAML-formatted file.
 # Declare variables to be passed into your templates.
 ---
+kind: deployment
 replicaCount: 1
+
 
 image:
   repository: k8s-deputy
@@ -14,6 +16,29 @@ threads: "1,1"
 
 nameOverride: ""
 fullnameOverride: ""
+
+# Wait after Julia process exits to allow `preStop` to complete
+command: ["/bin/sh", "-c", "julia entrypoint.jl; sleep 1"]
+
+env:
+  DEPUTY_IPC_DIR: /mnt/deputy-ipc
+healthCheckPort: 8081
+livenessProbe:
+  httpGet:
+    path: /health/live
+    port: health-check
+  timeoutSeconds: 5
+readinessProbe:
+  httpGet:
+    path: /health/live
+    port: health-check
+  timeoutSeconds: 5
+lifecycle:
+  preStop:
+    exec:
+      command: ["julia", "-e", "using K8sDeputy; graceful_terminate()"]
+
+terminationGracePeriodSeconds: 30
 
 podAnnotations: {}
 podLabels: {}
@@ -41,18 +66,6 @@ resources: {}
   # requests:
   #   cpu: 100m
   #   memory: 128Mi
-
-probe:
-  port: 8081
-
-livenessProbe:
-  httpGet:
-    path: /
-    port: http
-readinessProbe:
-  httpGet:
-    path: /
-    port: http
 
 # Additional volumes on the output Deployment definition.
 volumes:

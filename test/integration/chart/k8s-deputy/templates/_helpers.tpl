@@ -49,3 +49,11 @@ Selector labels
 app.kubernetes.io/name: {{ include "k8s-deputy.name" . }}
 app.kubernetes.io/instance: {{ .Release.Name }}
 {{- end }}
+
+{{/*
+Similar to `toYaml` but indents list items
+https://github.com/helm/helm/pull/12583
+*/}}
+{{- define "toYamlPretty" -}}
+{{- regexReplaceAll "(\\n\\s*)-" (toYaml .) "$1  -" }}
+{{- end }}
