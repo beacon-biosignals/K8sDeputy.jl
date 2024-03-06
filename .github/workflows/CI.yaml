@@ -75,6 +75,8 @@ jobs:
         # https://github.com/kubernetes/minikube/releases
         minikube-version:
           - "1.32.0"
+    env:
+      SKAFFOLD_INTERACTIVE: "false"  # Disable survey prompts
     steps:
       - uses: actions/checkout@v4
       - uses: yokawasa/action-setup-kube-tools@v0.11.0
