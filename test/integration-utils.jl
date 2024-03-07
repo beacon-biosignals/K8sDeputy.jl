@@ -88,3 +88,52 @@ function install_chart(body, name::AbstractString, overrides=Dict(); quiet::Bool
     end
     return result
 end
+
+function docker_build(context_dir; dockerfile=nothing, tag=nothing, build_args=Dict())
+    options = ``
+    !isnothing(dockerfile) && (options = `$options -f $dockerfile`)
+    !isnothing(tag) && (options = `$options --tag $tag`)
+    for (k, v) in build_args
+        options = `$options --build-arg $k=$v`
+    end
+
+    build_cmd = `docker build $options $context_dir`
+
+    # When using a minikube context we need to build the image within the minikube
+    # environment otherwise we'll see pods fail with the reason "ErrImageNeverPull".
+    if readchomp(`$(kubectl()) config current-context`) == "minikube" && !haskey(ENV, "MINIKUBE_ACTIVE_DOCKERD")
+        build_cmd = addenv(build_cmd, Dict(minikube_docker_env()))
+    end
+
+    return run(build_cmd)
+end
+
+image_repository(image) = first(split(image, ':'; limit=2))
+image_tag(image) = last(split(image, ':'; limit=2))  # Including image digest SHA
+
+function minikube_docker_env()
+    env_vars = Pair{String,String}[]
+    open(`minikube docker-env`) do f
+        while !eof(f)
+            line = readline(f)
+
+            if startswith(line, "export")
+                line = replace(line, r"^export " => "")
+                key, value = split(line, '='; limit=2)
+                push!(env_vars, key => unquote(value))
+            end
+        end
+    end
+
+    return env_vars
+end
+
+isquoted(str::AbstractString) = startswith(str, '"') && endswith(str, '"')
+
+function unquote(str::AbstractString)
+    if isquoted(str)
+        return replace(SubString(str, 2, lastindex(str) - 1), "\\\"" => "\"")
+    else
+        throw(ArgumentError("Passed in string is not quoted"))
+    end
+end
