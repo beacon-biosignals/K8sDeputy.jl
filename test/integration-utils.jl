@@ -108,9 +108,6 @@ function docker_build(context_dir; dockerfile=nothing, tag=nothing, build_args=D
     return run(build_cmd)
 end
 
-image_repository(image) = first(split(image, ':'; limit=2))
-image_tag(image) = last(split(image, ':'; limit=2))  # Including image digest SHA
-
 function minikube_docker_env()
     env_vars = Pair{String,String}[]
     open(`minikube docker-env`) do f
