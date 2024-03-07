@@ -1,6 +1,6 @@
 const K8S_DEPUTY_IMAGE = get(ENV, "K8S_DEPUTY_IMAGE", "k8s-deputy:integration")
-const K8S_DEPUTY_IMAGE_REPO = first(split(image, ':'; limit=2))
-const K8S_DEPUTY_IMAGE_TAG = last(split(image, ':'; limit=2))  # Includes image digest SHA
+const K8S_DEPUTY_IMAGE_REPO = first(split(K8S_DEPUTY_IMAGE, ':'; limit=2))
+const K8S_DEPUTY_IMAGE_TAG = last(split(K8S_DEPUTY_IMAGE, ':'; limit=2))  # Includes image digest SHA
 
 # As a convenience we'll automatically build the Docker image when a user uses `Pkg.test()`.
 # If the environmental variable is set we expect the Docker image has been pre-built.
@@ -16,8 +16,8 @@ end
 @testset "SIGTERM graceful termination" begin
     chart_name = "integration"
     grace_period = 3
-    overrides = Dict("image.repository" => image_repository(K8S_DEPUTY_IMAGE),
-                     "image.tag" => image_tag(K8S_DEPUTY_IMAGE),
+    overrides = Dict("image.repository" => K8S_DEPUTY_IMAGE_REPO,
+                     "image.tag" => K8S_DEPUTY_IMAGE_TAG,
                      "command" => ["julia", "entrypoint.jl"],
                      "lifecycle" => nothing,
                      "terminationGracePeriodSeconds" => grace_period)
