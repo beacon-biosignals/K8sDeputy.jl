@@ -19,14 +19,14 @@ tag = "latest"
     end
 
     # # Determine when the "delete" command was received by the server
-    # event_items = events(pod).items
+    # event_items = get_events(pod).items
     # delete_event = last(filter(event -> event.reason == "Killing", event_items))
     # delete_event_timestamp = parse(DateTime, delete_event.lastTimestamp, dateformat"yyyy-mm-dd\THH:MM:SS\Z")
 
     logs = String(take!(pod.logs))
     @test delete_duration < grace_period
     @test contains(logs, "[1] signal (15): Terminated\nin expression starting at")
-    @test !any(event -> event.reason == "FailedPreStopHook", events(pod).items)
+    @test !any(event -> event.reason == "FailedPreStopHook", get_events(pod).items)
 end
 
 # Verify Julia's handling of the `TERM` signal in a K8s environment
@@ -51,7 +51,7 @@ end
     logs = String(take!(pod.logs))
     @test delete_duration > grace_period
     @test !contains(logs, "signal (15): Terminated")
-    @test !any(event -> event.reason == "FailedPreStopHook", events(pod).items)
+    @test !any(event -> event.reason == "FailedPreStopHook", get_events(pod).items)
 end
 
 @testset "Container halts before preStop completes" begin
@@ -70,10 +70,10 @@ end
         delete_duration = time() - delete_started
     end
 
-    @test delete_duration < grace_period
     logs = String(take!(pod.logs))
+    @test delete_duration < grace_period
     @test !contains(logs, "signal (15): Terminated")
-    @test any(event -> event.reason == "FailedPreStopHook", events(pod).items)
+    @test any(event -> event.reason == "FailedPreStopHook", get_events(pod).items)
 end
 
 @testset "Missing post Julia entrypoint delay" begin
@@ -92,8 +92,30 @@ end
         delete_duration = time() - delete_started
     end
 
-    @test delete_duration < grace_period
     logs = String(take!(pod.logs))
+    @test delete_duration < grace_period
     @test !contains(logs, "signal (15): Terminated")
-    @test any(event -> event.reason == "FailedPreStopHook", events(pod).items)
+    @test any(event -> event.reason == "FailedPreStopHook", get_events(pod).items)
+end
+
+@testset "Valid" begin
+    chart_name = "integration"
+    grace_period = 3
+    overrides = Dict("image.tag" => tag,
+                     "command" => ["/bin/sh", "-c", "julia entrypoint.jl; sleep 1"],
+                     "terminationGracePeriodSeconds" => grace_period)
+
+    local pod, delete_duration
+    install_chart(chart_name, overrides) do
+        pod = Pod("$chart_name-k8s-deputy")
+        delete_started = time()
+        delete(pod)
+        wait(pod)
+        delete_duration = time() - delete_started
+    end
+
+    logs = String(take!(pod.logs))
+    @test delete_duration < grace_period
+    @test !contains(logs, "signal (15): Terminated")
+    @test !any(event -> event.reason == "FailedPreStopHook", get_events(pod).items)
 end

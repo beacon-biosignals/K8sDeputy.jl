@@ -11,7 +11,7 @@ mutable struct Pod
 
     function Pod(name::AbstractString)
         pod = new(name)
-        pod.uid = UUID(pod)
+        pod.uid = get_uid(pod)
         pod.logs = IOBuffer()
         pod.logs_process = monitor_logs(pod.logs, pod)
         return pod
@@ -20,7 +20,7 @@ end
 
 Base.print(io::IO, p::Pod) = print(io, "pod/", p.name)
 
-function Base.UUID(p::Pod)
+function get_uid(p::Pod)
     cmd = `$(kubectl()) get $p -o jsonpath="{.metadata.uid}"`
     err = IOBuffer()
     uid = readchomp(pipeline(ignorestatus(cmd), stderr=err))
@@ -35,7 +35,7 @@ function monitor_logs(io::IO, p::Pod)
 end
 
 # TODO: Confirm that pod UID contains FailedPreStopHook
-function events(p::Pod)
+function get_events(p::Pod)
     cmd = `$(kubectl()) get events --field-selector involvedObject.uid=$(p.uid) -o json`
     err = IOBuffer()
     out = readchomp(pipeline(ignorestatus(cmd), stderr=err))
