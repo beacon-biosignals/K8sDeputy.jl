@@ -1,11 +1,12 @@
 using Aqua: Aqua
-using Dates: Second
+using Dates: DateTime, Second, UTC, @dateformat_str, now
 using K8sDeputy
 using K8sDeputy: readiness_endpoint, liveness_endpoint, serve!
 using HTTP: HTTP
 using Mocking: Mocking, @mock, @patch, apply
 using Sockets: localhost
 using Test
+using kubectl_jll
 
 const RUN_TESTS = let
     valid_types = ("unit", "integration", "quality_assurance")
@@ -18,6 +19,8 @@ end
 const EPHEMERAL_PORT_RANGE = 49152:65535
 
 Mocking.activate()
+
+include("integration-utils.jl")
 
 @testset "K8sDeputy.jl" begin
     if RUN_TESTS.quality_assurance

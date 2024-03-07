@@ -1,4 +1,4 @@
-{{- if eq .Values.type "pod" }}
+{{- if eq .Values.kind "pod" }}
 ---
 apiVersion: v1
 kind: Pod

@@ -1,4 +1,4 @@
-{{- if eq .Values.type "deployment" }}
+{{- if eq .Values.kind "deployment" }}
 ---
 apiVersion: apps/v1
 kind: Deployment
