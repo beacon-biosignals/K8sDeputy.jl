@@ -27,7 +27,7 @@ Base.print(io::IO, p::Pod) = print(io, "pod/", p.name)
 function get_uid(p::Pod)
     cmd = `$(kubectl()) get $p -o jsonpath="{.metadata.uid}"`
     err = IOBuffer()
-    uid = readchomp(pipeline(ignorestatus(cmd), stderr=err))
+    uid = readchomp(pipeline(ignorestatus(cmd); stderr=err))
 
     err.size > 0 && error(String(take!(err)))
     return parse(UUID, uid)
@@ -41,7 +41,7 @@ end
 function get_events(p::Pod)
     cmd = `$(kubectl()) get events --field-selector involvedObject.uid=$(p.uid) -o json`
     err = IOBuffer()
-    out = readchomp(pipeline(ignorestatus(cmd), stderr=err))
+    out = readchomp(pipeline(ignorestatus(cmd); stderr=err))
 
     err.size > 0 && error(String(take!(err)))
     return JSON3.read(out)
@@ -50,7 +50,7 @@ end
 function delete(p::Pod; wait::Bool=true)
     cmd = `$(kubectl()) delete $p --wait=$wait`
     err = IOBuffer()
-    run(pipeline(ignorestatus(cmd), stdout=devnull, stderr=err))
+    run(pipeline(ignorestatus(cmd); stdout=devnull, stderr=err))
 
     err.size > 0 && error(String(take!(err)))
     return nothing
@@ -59,11 +59,13 @@ end
 function Base.wait(p::Pod)
     cmd = `$(kubectl()) wait --for=delete $p`
     err = IOBuffer()
-    run(pipeline(ignorestatus(cmd), stdout=devnull, stderr=err))
+    run(pipeline(ignorestatus(cmd); stdout=devnull, stderr=err))
 
     err.size > 0 && error(String(take!(err)))
     return nothing
 end
+
+kubectl_context() = readchomp(`$(kubectl()) config current-context`)
 
 ###
 ### Helm
@@ -81,7 +83,7 @@ function install_chart(name::AbstractString, overrides=Dict(); quiet::Bool=true)
     end
     stdout = quiet ? devnull : Base.stdout
     run(pipeline(`helm uninstall $name --ignore-not-found`; stdout))
-    run(pipeline(`helm install $name $chart --wait $options`; stdout))
+    return run(pipeline(`helm install $name $chart --wait $options`; stdout))
 end
 
 function install_chart(body, name::AbstractString, overrides=Dict(); quiet::Bool=true)
@@ -112,7 +114,7 @@ function docker_build(context_dir; dockerfile=nothing, tag=nothing, build_args=D
 
     # When using a minikube context we need to build the image within the minikube
     # environment otherwise we'll see pods fail with the reason "ErrImageNeverPull".
-    if readchomp(`$(kubectl()) config current-context`) == "minikube" && !haskey(ENV, "MINIKUBE_ACTIVE_DOCKERD")
+    if kubectl_context() == "minikube" && !haskey(ENV, "MINIKUBE_ACTIVE_DOCKERD")
         build_cmd = addenv(build_cmd, Dict(minikube_docker_env()))
     end
 

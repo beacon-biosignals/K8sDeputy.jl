@@ -30,6 +30,7 @@ end
         delete(pod)
         wait(pod)
         delete_duration = time() - delete_started
+        return nothing
     end
 
     # # Determine when the "delete" command was received by the server
@@ -60,6 +61,7 @@ end
         delete(pod)
         wait(pod)
         delete_duration = time() - delete_started
+        return nothing
     end
 
     logs = String(take!(pod.logs))
@@ -82,6 +84,7 @@ end
         delete(pod)
         wait(pod)
         delete_duration = time() - delete_started
+        return nothing
     end
 
     logs = String(take!(pod.logs))
@@ -104,6 +107,7 @@ end
         delete(pod)
         wait(pod)
         delete_duration = time() - delete_started
+        return nothing
     end
 
     logs = String(take!(pod.logs))
@@ -126,6 +130,7 @@ end
         delete(pod)
         wait(pod)
         delete_duration = time() - delete_started
+        return nothing
     end
 
     logs = String(take!(pod.logs))
