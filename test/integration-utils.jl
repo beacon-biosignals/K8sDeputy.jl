@@ -62,9 +62,9 @@ function Base.wait(p::Pod)
     return nothing
 end
 
-function install_chart(name::AbstractString, image_tag::AbstractString, overrides=Dict())
+function install_chart(name::AbstractString, overrides=Dict(); quiet::Bool=true)
     chart = joinpath(@__DIR__(), "integration", "chart", "k8s-deputy")
-    options = `--set kind=pod --set image.tag=$image_tag`
+    options = `--set kind=pod`
     for (k, v) in pairs(overrides)
         options = if v isa AbstractArray || v isa AbstractDict || v isa Nothing
             `$options --set-json $k=$(JSON3.write(v))`
@@ -72,8 +72,19 @@ function install_chart(name::AbstractString, image_tag::AbstractString, override
             `$options --set-literal $k=$v`
         end
     end
-    install_cmd = `helm install $name $chart --wait $options`
-    run(`helm uninstall $name --ignore-not-found`)
-    @show install_cmd
-    run(install_cmd)
+    stdout = quiet ? devnull : Base.stdout
+    run(pipeline(`helm uninstall $name --ignore-not-found`; stdout))
+    run(pipeline(`helm install $name $chart --wait $options`; stdout))
+end
+
+function install_chart(body, name::AbstractString, overrides=Dict(); quiet::Bool=true)
+    local result
+    stdout = quiet ? devnull : Base.stdout
+    install_chart(name, overrides; quiet)
+    try
+        result = body()
+    finally
+        run(pipeline(`helm uninstall $name`; stdout))
+    end
+    return result
 end
