@@ -2,6 +2,10 @@ using kubectl_jll
 using UUIDs
 using JSON3: JSON3
 
+###
+### kubectl
+###
+
 # TODO: Would be great if we could use the UID for all requests
 mutable struct Pod
     name::String
@@ -34,7 +38,6 @@ function monitor_logs(io::IO, p::Pod)
     return run(pipeline(cmd; stdout=io); wait=false)
 end
 
-# TODO: Confirm that pod UID contains FailedPreStopHook
 function get_events(p::Pod)
     cmd = `$(kubectl()) get events --field-selector involvedObject.uid=$(p.uid) -o json`
     err = IOBuffer()
@@ -62,6 +65,10 @@ function Base.wait(p::Pod)
     return nothing
 end
 
+###
+### Helm
+###
+
 function install_chart(name::AbstractString, overrides=Dict(); quiet::Bool=true)
     chart = joinpath(@__DIR__(), "integration", "chart", "k8s-deputy")
     options = `--set kind=pod`
@@ -88,6 +95,10 @@ function install_chart(body, name::AbstractString, overrides=Dict(); quiet::Bool
     end
     return result
 end
+
+###
+### Docker
+###
 
 function docker_build(context_dir; dockerfile=nothing, tag=nothing, build_args=Dict())
     options = ``
