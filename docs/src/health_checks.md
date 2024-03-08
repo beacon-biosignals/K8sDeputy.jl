@@ -46,7 +46,7 @@ spec:
         timeoutSeconds: 5
 ```
 
-!!!note
+!!! note
 
     K8s probes require that applications must respond to the probe requests in under `timeoutSeconds` (defaults to 1 second). Since Julia's HTTP.jl server can be unresponsive we recommend using a `timeoutSeconds` of at least 5 seconds.
 
