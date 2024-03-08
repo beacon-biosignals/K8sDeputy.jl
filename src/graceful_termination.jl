@@ -20,7 +20,7 @@ end
 # Following the Linux convention for pid files:
 # https://refspecs.linuxfoundation.org/FHS_3.0/fhs/ch03s15.html
 entrypoint_pid_file() = joinpath(_deputy_ipc_dir(), "julia-entrypoint.pid")
-entrypoint_pid(pid::Integer) = write(entrypoint_pid_file(), string(pid) * "\n")
+set_entrypoint_pid(pid::Integer) = write(entrypoint_pid_file(), string(pid) * "\n")
 
 function entrypoint_pid()
     pid_file = entrypoint_pid_file()
@@ -78,7 +78,7 @@ as the init process (PID 1). Instead, users should define their entrypoint simil
 process and the `preStop` process to cleanly terminate.
 """
 function graceful_terminator(f; set_entrypoint::Bool=true)
-    set_entrypoint && entrypoint_pid(getpid())
+    set_entrypoint && set_entrypoint_pid(getpid())
 
     # Utilize UNIX domain sockets for the IPC. Avoid using network sockets here as we don't
     # want to allow access to this functionality from outside of the localhost. Each process
