@@ -40,7 +40,7 @@ end
 
     logs = String(take!(pod.logs))
     @test delete_duration < TERMINATION_GRACE_PERIOD_SECONDS
-    @test contains(logs, "[1] signal (15): Terminated\nin expression starting at")
+    @test contains(logs, "signal (15): Terminated\nin expression starting at")
     @test !any(event -> event.reason == "FailedPreStopHook", get_events(pod).items)
 end
 
