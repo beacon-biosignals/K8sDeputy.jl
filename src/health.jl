@@ -45,6 +45,9 @@ If a `deputy.shutdown_handler` is defined it must complete within the
 `deputy.shutdown_handler_timeout` or a warning will be logged and the Julia process will
 immediately exit. Any exceptions that occur in the `deputy.shutdown_handler` will also be
 logged and result in the Julia process exiting.
+
+A `shutdown_handler` may optionally call `exit` if a user wants to specify the exit status.
+By default `shutdown!` uses an exit status of `1`.
 """
 function shutdown!(deputy::Deputy)
     # Abend if already shutting down
@@ -66,7 +69,9 @@ function shutdown!(deputy::Deputy)
         end
     end
 
-    # Shutdown handler's should not call `exit`
+    # Normally `shutdown!` is responsible for exiting the Julia process. However, a
+    # user-defined `shutdown_handler` may call `exit` but must do so prior before reaching
+    # the timeout.
     @mock exit(1)
 
     return nothing
