@@ -27,7 +27,7 @@ Once `graceful_terminate` has been called the first process will: execute the ca
 !!! note
 
     By default the `graceful_terminator` function registers the caller Julia process as the "entrypoint" Julia process. Primarily, this allows for out-of-the-box support for Julia
-    applications running as non-[init](https://en.wikipedia.org/wiki/Init) processes but only allows one Julia process to be defined as the "entrypoint". If you require multiple Julia processes within to support graceful termination concurrently you can use `set_entrypoint=false` (e.g. `graceful_terminator(...; set_entrypoint=false)`) and pass in the target process ID to `graceful_terminate`.
+    applications running as non-[init](https://en.wikipedia.org/wiki/Init) processes but only allows one Julia process to be defined as the "entrypoint". If you require multiple Julia processes to support graceful termination concurrently you can use `set_entrypoint=false` (e.g. `graceful_terminator(...; set_entrypoint=false)`) and pass in the target process ID to `graceful_terminate`.
 
 ## Deputy Integration
 
@@ -64,12 +64,12 @@ spec:
 
     Applications with slow shutdown callbacks may want to consider specifying `terminationGracePeriodSeconds` which specifies the maximum duration a pod can take when gracefully terminating. Once the timeout is reached the processes running in the pod are forcibly halted with a `KILL` signal.
 
-Finally, the entrypoint for the container should also not directly use the Julia as [init](https://en.wikipedia.org/wiki/Init) process (PID 1). Instead, users should define their entrypoint similarly to
-`["/bin/sh", "-c", "julia entrypoint.jl; sleep 1"]` as this allows the both the Julia process and the `preStop` process to cleanly terminate.
+Finally, the entrypoint for the container should also not directly use the Julia as the [init](https://en.wikipedia.org/wiki/Init) process (PID 1). Instead, users should define their entrypoint similarly to
+`["/bin/sh", "-c", "julia entrypoint.jl; sleep 1"]` as this allows both the Julia process and the `preStop` process to cleanly terminate.
 
 ### Read-only Filesystem
 
-If you a read-only filesystem on your container you'll need to configure a writeable volume mount for K8sDeputy.jl. The `DEPUTY_IPC_DIR` environmental variable can be used to instruct K8sDeputy.jl where to store the named pipes it creates for interprocess communication:
+If you have a read-only filesystem on your container you'll need to configure a writeable volume mount for K8sDeputy.jl. The `DEPUTY_IPC_DIR` environmental variable can be used to instruct K8sDeputy.jl where to store the named pipes it creates for interprocess communication:
 
 ```yaml
 apiVersion: v1

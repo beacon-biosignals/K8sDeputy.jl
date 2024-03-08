@@ -66,7 +66,7 @@ readied(deputy)
 # Application code
 ```
 
-When you application is ready you should declare your application as "readied". Doing this causes the readiness endpoint to start returning successful responses. For K8s applications responding to network traffic this endpoint is critical for ensuring timely responses to external requests. Although, defining `readied` for non-network based applications is optional it can still be useful for administration/monitoring.
+When your application is ready you should declare your application as "readied". Doing this causes the readiness endpoint to start returning successful responses. For K8s applications responding to network traffic this endpoint is critical for ensuring timely responses to external requests. Although, defining `readied` for non-network based applications is optional it can still be useful for administration/monitoring.
 
 To configure your K8s container resource with a readiness probe you'll need to declare a `readinessProbe` in your manifest. For example here's a partial manifest for a K8s pod:
 
@@ -103,7 +103,7 @@ finally
 end
 ```
 
-Once `shutdown` is called the following occur:
+Once `shutdown` is called the following occurs:
 
 1. The liveness endpoint starts returning failure responses
 2. The deputy's `shutdown_handler` is called
