@@ -50,7 +50,7 @@ Julia process.
 
 ```julia
 app_status = AppStatus()
-graceful_terminator(() -> shutdown(app_status))
+graceful_terminator(() -> shutdown!(app_status))
 ```
 ## Kubernetes Setup
 

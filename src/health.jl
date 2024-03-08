@@ -13,7 +13,7 @@ Construct an application `Deputy` which provides health check endpoints.
 ## Keywords
 
 - `shutdown_handler` (optional): A zero-argument function which allows the user to provide
-  a custom callback function for when `shutdown(::Deputy)` is called.
+  a custom callback function for when `shutdown!(::Deputy)` is called.
 - `shutdown_handler_timeout::Period` (optional): Specifies the maximum execution duration of
   a `shutdown_handler`.
 """

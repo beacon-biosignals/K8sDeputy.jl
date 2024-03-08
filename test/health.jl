@@ -177,7 +177,7 @@ end
             r = HTTP.get("http://$localhost:$port/health/live")
             @test r.status == 200
 
-            # Faking shutting down. Normal usage would call `shutdown` but we don't want to
+            # Faking shutting down. Normal usage would call `shutdown!` but we don't want to
             # terminate our test process.
             deputy.shutting_down = true
 

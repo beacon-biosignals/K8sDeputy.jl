@@ -12,7 +12,7 @@ Starts a non-blocking `HTTP.Server` responding to requests to `deputy` health ch
 following health check endpoints are available:
 
 - `/health/live`: Is the server is alive/running?
-- `/health/ready`: Is the server ready (has `readied(deputy)` been called)?
+- `/health/ready`: Is the server ready (has `readied!(deputy)` been called)?
 
 These endpoints will respond with HTTP status `200 OK` on success or
 `503 Service Unavailable` on failure.
