@@ -22,10 +22,12 @@ jobs:
   docs:
     name: Build
     # These permissions are needed to:
+    # - Run `deploydocs`
     # - Delete old caches: https://github.com/julia-actions/cache#usage
     permissions:
-      actions: write
-      contents: read
+      # actions: write
+      # contents: read
+      pull_requests: read
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -33,7 +35,7 @@ jobs:
         with:
           version: "1"
           show-versioninfo: true
-      - uses: julia-actions/cache@v1
+      # - uses: julia-actions/cache@v1
       - name: Install dependencies
         shell: julia --project=docs --color=yes {0}
         run: |
