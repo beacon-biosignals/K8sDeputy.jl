@@ -25,7 +25,7 @@ jobs:
     # - Run `deploydocs`: https://github.com/JuliaDocs/Documenter.jl/pull/2478
     # - Delete old caches: https://github.com/julia-actions/cache#usage
     permissions:
-      # actions: write
+      actions: write
       contents: write
       pull-requests: read
     runs-on: ubuntu-latest
@@ -35,7 +35,7 @@ jobs:
         with:
           version: "1"
           show-versioninfo: true
-      # - uses: julia-actions/cache@v1
+      - uses: julia-actions/cache@v1
       - name: Install dependencies
         shell: julia --project=docs --color=yes {0}
         run: |
