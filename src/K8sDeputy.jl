@@ -5,7 +5,7 @@ using HTTP: HTTP
 using Mocking
 using Sockets: accept, connect, listen, localhost
 
-export Deputy, graceful_terminator, readied, shutdown, graceful_terminate
+export Deputy, graceful_terminator, readied!, shutdown!, graceful_terminate
 
 include("graceful_termination.jl")
 include("health.jl")

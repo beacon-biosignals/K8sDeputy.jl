@@ -31,13 +31,13 @@ Once `graceful_terminate` has been called the first process will: execute the ca
 
 ## Deputy Integration
 
-The `graceful_terminator` function can be combined with the deputy's `shutdown` function to allow graceful termination of the application and the deputy:
+The `graceful_terminator` function can be combined with the deputy's `shutdown!` function to allow graceful termination of the application and the deputy:
 
 ```julia
 using K8sDeputy
 deputy = Deputy(; shutdown_handler=() -> @info "Shutting down")
 server = K8sDeputy.serve!(deputy, "0.0.0.0")
-graceful_terminator(() -> shutdown(deputy))
+graceful_terminator(() -> shutdown!(deputy))
 
 # Application code
 ```

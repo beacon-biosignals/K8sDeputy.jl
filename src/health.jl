@@ -22,22 +22,22 @@ function Deputy(; shutdown_handler=nothing, shutdown_handler_timeout::Period=Sec
 end
 
 """
-    readied(deputy::Deputy) -> Nothing
+    readied!(deputy::Deputy) -> Nothing
 
 Mark the application as "ready". Sets the readiness endpoint to respond with successful
 responses.
 """
-function readied(deputy::Deputy)
+function readied!(deputy::Deputy)
     deputy.ready = true
     return nothing
 end
 
 """
-    shutdown(deputy::Deputy) -> Nothing
+    shutdown!(deputy::Deputy) -> Nothing
 
 Initiates a shutdown of the application by:
 
-1. Setting the liveness endpoint to respond with failures.
+1. Mark the application as shutting down ("non-live").
 2. Executing the deputy's `shutdown_handler` (if defined).
 3. Exiting the current Julia process.
 
@@ -46,7 +46,7 @@ If a `deputy.shutdown_handler` is defined it must complete within the
 immediately exit. Any exceptions that occur in the `deputy.shutdown_handler` will also be
 logged and result in the Julia process exiting.
 """
-function shutdown(deputy::Deputy)
+function shutdown!(deputy::Deputy)
     # Abend if already shutting down
     deputy.shutting_down && return nothing
     deputy.shutting_down = true
