@@ -46,7 +46,7 @@ spec:
         timeoutSeconds: 5
 ```
 
-!!!note
+!!! note
 
     K8s probes require that applications must respond to the probe requests in under `timeoutSeconds` (defaults to 1 second). Since Julia's HTTP.jl server can be unresponsive we recommend using a `timeoutSeconds` of at least 5 seconds.
 
@@ -110,3 +110,5 @@ Once `shutdown!` is called the following occurs:
 3. The Julia process is terminated
 
 By default the `shutdown_handler` only has 5 seconds to complete. If your `shutdown_handler` requires more time to execute you can change the timeout by using the keyword `shutdown_handler_timeout`.
+
+Depending on your application you may want to define multiple calls to `shutdown!`. For example you may want to call `shutdown!` from within `graceful_terminator` to enable [graceful termination support](./graceful_termination.md) for you application.

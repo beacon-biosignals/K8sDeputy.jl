@@ -200,7 +200,7 @@ end
             atexit(() -> @info "SHUTDOWN COMPLETE")
 
             deputy = Deputy(; shutdown_handler)
-            graceful_terminator() do
+            graceful_terminator(; set_entrypoint=false) do
                 @info "GRACEFUL TERMINATION HANDLER"
                 shutdown!(deputy)
                 return nothing
@@ -219,7 +219,8 @@ end
             return r.status == 200
         end === :ok
 
-        graceful_terminate(getpid(p))  # Blocks untils the HTTP server goes down
+        # Blocks untils the process terminates
+        graceful_terminate(getpid(p))
         @test process_exited(p)
         @test p.exitcode == 1
 
