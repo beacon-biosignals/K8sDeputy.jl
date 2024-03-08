@@ -2,6 +2,7 @@ const K8S_DEPUTY_IMAGE = get(ENV, "K8S_DEPUTY_IMAGE", "k8s-deputy:integration")
 const K8S_DEPUTY_IMAGE_REPO = first(split(K8S_DEPUTY_IMAGE, ':'; limit=2))
 const K8S_DEPUTY_IMAGE_TAG = last(split(K8S_DEPUTY_IMAGE, ':'; limit=2))  # Includes image digest SHA
 
+const CHART_NAME = "k8s-deputy-integration-$(getpid())"
 const TERMINATION_GRACE_PERIOD_SECONDS = 5
 
 # As a convenience we'll automatically build the Docker image when a user uses `Pkg.test()`.
@@ -16,7 +17,6 @@ end
 
 # Verify Julia's handling of the `TERM` signal in a K8s environment
 @testset "SIGTERM graceful termination" begin
-    chart_name = "integration"
     overrides = Dict("image.repository" => K8S_DEPUTY_IMAGE_REPO,
                      "image.tag" => K8S_DEPUTY_IMAGE_TAG,
                      "command" => ["julia", "entrypoint.jl"],
@@ -24,8 +24,8 @@ end
                      "terminationGracePeriodSeconds" => TERMINATION_GRACE_PERIOD_SECONDS)
 
     local pod, delete_duration
-    install_chart(chart_name, overrides; timeout="15s") do
-        pod = Pod("$chart_name-k8s-deputy")
+    install_chart(CHART_NAME, overrides; timeout="15s") do
+        pod = Pod(CHART_NAME)
         delete_started = time()
         delete(pod)
         wait(pod)
@@ -46,7 +46,6 @@ end
 
 # Verify Julia's handling of the `TERM` signal in a K8s environment
 @testset "Ignore SIGTERM graceful termination" begin
-    chart_name = "integration"
     # Child processes don't automatically get forwarded signals
     overrides = Dict("image.repository" => K8S_DEPUTY_IMAGE_REPO,
                      "image.tag" => K8S_DEPUTY_IMAGE_TAG,
@@ -55,8 +54,8 @@ end
                      "terminationGracePeriodSeconds" => TERMINATION_GRACE_PERIOD_SECONDS)
 
     local pod, delete_duration
-    install_chart(chart_name, overrides; timeout="15s") do
-        pod = Pod("$chart_name-k8s-deputy")
+    install_chart(CHART_NAME, overrides; timeout="15s") do
+        pod = Pod(CHART_NAME)
         delete_started = time()
         delete(pod)
         wait(pod)
@@ -71,15 +70,14 @@ end
 end
 
 @testset "Container halts before preStop completes" begin
-    chart_name = "integration"
     overrides = Dict("image.repository" => K8S_DEPUTY_IMAGE_REPO,
                      "image.tag" => K8S_DEPUTY_IMAGE_TAG,
                      "command" => ["julia", "entrypoint.jl"],
                      "terminationGracePeriodSeconds" => TERMINATION_GRACE_PERIOD_SECONDS)
 
     local pod, delete_duration
-    install_chart(chart_name, overrides; timeout="15s") do
-        pod = Pod("$chart_name-k8s-deputy")
+    install_chart(CHART_NAME, overrides; timeout="15s") do
+        pod = Pod(CHART_NAME)
         delete_started = time()
         delete(pod)
         wait(pod)
@@ -94,15 +92,14 @@ end
 end
 
 @testset "Missing post Julia entrypoint delay" begin
-    chart_name = "integration"
     overrides = Dict("image.repository" => K8S_DEPUTY_IMAGE_REPO,
                      "image.tag" => K8S_DEPUTY_IMAGE_TAG,
                      "command" => ["/bin/sh", "-c", "julia entrypoint.jl"],
                      "terminationGracePeriodSeconds" => TERMINATION_GRACE_PERIOD_SECONDS)
 
     local pod, delete_duration
-    install_chart(chart_name, overrides; timeout="15s") do
-        pod = Pod("$chart_name-k8s-deputy")
+    install_chart(CHART_NAME, overrides; timeout="15s") do
+        pod = Pod(CHART_NAME)
         delete_started = time()
         delete(pod)
         wait(pod)
@@ -117,15 +114,14 @@ end
 end
 
 @testset "Valid" begin
-    chart_name = "integration"
     overrides = Dict("image.repository" => K8S_DEPUTY_IMAGE_REPO,
                      "image.tag" => K8S_DEPUTY_IMAGE_TAG,
                      "command" => ["/bin/sh", "-c", "julia entrypoint.jl; sleep 1"],
                      "terminationGracePeriodSeconds" => TERMINATION_GRACE_PERIOD_SECONDS)
 
     local pod, delete_duration
-    install_chart(chart_name, overrides; timeout="15s") do
-        pod = Pod("$chart_name-k8s-deputy")
+    install_chart(CHART_NAME, overrides; timeout="15s") do
+        pod = Pod(CHART_NAME)
         delete_started = time()
         delete(pod)
         wait(pod)
