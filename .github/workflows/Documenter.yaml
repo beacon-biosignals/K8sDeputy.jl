@@ -22,7 +22,7 @@ jobs:
   docs:
     name: Build
     # These permissions are needed to:
-    # - Run `deploydocs`
+    # - Run `deploydocs`: https://github.com/JuliaDocs/Documenter.jl/pull/2478
     # - Delete old caches: https://github.com/julia-actions/cache#usage
     permissions:
       # actions: write
