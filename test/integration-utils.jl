@@ -71,9 +71,11 @@ kubectl_context() = readchomp(`$(kubectl()) config current-context`)
 ### Helm
 ###
 
-function install_chart(name::AbstractString, overrides=Dict(); quiet::Bool=true)
+function install_chart(name::AbstractString, overrides=Dict(); quiet::Bool=true,
+                       timeout=nothing)
     chart = joinpath(@__DIR__(), "integration", "chart", "k8s-deputy")
     options = `--set kind=pod`
+    !isnothing(timeout) && (options = `$options --timeout=$timeout`)
     for (k, v) in pairs(overrides)
         options = if v isa AbstractArray || v isa AbstractDict || v isa Nothing
             `$options --set-json $k=$(JSON3.write(v))`
@@ -86,10 +88,11 @@ function install_chart(name::AbstractString, overrides=Dict(); quiet::Bool=true)
     return run(pipeline(`helm install $name $chart --wait $options`; stdout))
 end
 
-function install_chart(body, name::AbstractString, overrides=Dict(); quiet::Bool=true)
+function install_chart(body, name::AbstractString, overrides=Dict(); quiet::Bool=true,
+                       timeout=nothing)
     local result
     stdout = quiet ? devnull : Base.stdout
-    install_chart(name, overrides; quiet)
+    install_chart(name, overrides; quiet, timeout)
     try
         result = body()
     finally

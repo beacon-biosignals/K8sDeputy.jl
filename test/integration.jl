@@ -24,7 +24,7 @@ end
                      "terminationGracePeriodSeconds" => TERMINATION_GRACE_PERIOD_SECONDS)
 
     local pod, delete_duration
-    install_chart(chart_name, overrides) do
+    install_chart(chart_name, overrides; timeout="15s") do
         pod = Pod("$chart_name-k8s-deputy")
         delete_started = time()
         delete(pod)
@@ -55,7 +55,7 @@ end
                      "terminationGracePeriodSeconds" => TERMINATION_GRACE_PERIOD_SECONDS)
 
     local pod, delete_duration
-    install_chart(chart_name, overrides) do
+    install_chart(chart_name, overrides; timeout="15s") do
         pod = Pod("$chart_name-k8s-deputy")
         delete_started = time()
         delete(pod)
@@ -78,7 +78,7 @@ end
                      "terminationGracePeriodSeconds" => TERMINATION_GRACE_PERIOD_SECONDS)
 
     local pod, delete_duration
-    install_chart(chart_name, overrides) do
+    install_chart(chart_name, overrides; timeout="15s") do
         pod = Pod("$chart_name-k8s-deputy")
         delete_started = time()
         delete(pod)
@@ -101,7 +101,7 @@ end
                      "terminationGracePeriodSeconds" => TERMINATION_GRACE_PERIOD_SECONDS)
 
     local pod, delete_duration
-    install_chart(chart_name, overrides) do
+    install_chart(chart_name, overrides; timeout="15s") do
         pod = Pod("$chart_name-k8s-deputy")
         delete_started = time()
         delete(pod)
@@ -124,7 +124,7 @@ end
                      "terminationGracePeriodSeconds" => TERMINATION_GRACE_PERIOD_SECONDS)
 
     local pod, delete_duration
-    install_chart(chart_name, overrides) do
+    install_chart(chart_name, overrides; timeout="15s") do
         pod = Pod("$chart_name-k8s-deputy")
         delete_started = time()
         delete(pod)
