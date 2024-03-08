@@ -1,0 +1,6 @@
+[deps]
+Documenter = "e30172f5-a6a5-5a46-863b-614d45cd2de4"
+K8sDeputy = "2481ae95-212f-4650-bb21-d53ea3caf09f"
+
+[compat]
+Documenter = "1.0.0"

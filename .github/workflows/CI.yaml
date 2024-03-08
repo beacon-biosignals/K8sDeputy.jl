@@ -1,0 +1,59 @@
+---
+name: CI
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+    tags: ["*"]
+    paths:
+      - "src/**"
+      - "test/**"
+      - "Project.toml"
+      - ".github/workflows/CI.yaml"
+  pull_request:
+    paths:
+      - "src/**"
+      - "test/**"
+      - "Project.toml"
+      - ".github/workflows/CI.yaml"
+concurrency:
+  # Skip intermediate builds: always.
+  # Cancel intermediate builds: only if it is a pull request build.
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ startsWith(github.ref, 'refs/pull/') }}
+jobs:
+  test:
+    name: Julia ${{ matrix.version }} - ${{ matrix.runs-on }} - ${{ matrix.arch }} - ${{ matrix.threads}} threads
+    # These permissions are needed to:
+    # - Delete old caches: https://github.com/julia-actions/cache#cache-retention
+    permissions:
+      actions: write
+      contents: read
+    runs-on: ${{ matrix.runs-on }}
+    strategy:
+      fail-fast: false
+      matrix:
+        version:
+          - "1.6"  # Earliest version of Julia that the package is compatible with
+          - "1"    # Latest Julia release
+        runs-on:
+          - ubuntu-latest
+        arch:
+          - x64
+        threads:
+          - 1
+    env:
+      JULIA_NUM_THREADS: ${{ matrix.threads }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: julia-actions/setup-julia@v1
+        with:
+          version: ${{ matrix.version }}
+          arch: ${{ matrix.arch }}
+      - uses: julia-actions/cache@v1
+      - uses: julia-actions/julia-runtest@v1
+      - uses: julia-actions/julia-processcoverage@v1
+      - uses: codecov/codecov-action@v3
+        with:
+          file: lcov.info
