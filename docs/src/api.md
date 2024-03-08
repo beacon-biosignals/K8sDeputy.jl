@@ -3,8 +3,8 @@
 ```@docs
 Deputy
 K8sDeputy.serve!
-readied
-shutdown
+readied!
+shutdown!
 graceful_terminator
 graceful_terminate
 ```

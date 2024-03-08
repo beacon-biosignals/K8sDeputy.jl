@@ -9,11 +9,11 @@ For users who want to get started quickly you can use the following template to 
    using K8sDeputy
    deputy = Deputy()
    server = K8sDeputy.serve!(deputy, "0.0.0.0")
-   graceful_terminator(() -> shutdown(deputy))
+   graceful_terminator(() -> shutdown!(deputy))
    
    # Application initialization code
    
-   readied(deputy)
+   readied!(deputy)
    
    # Application code
    ```

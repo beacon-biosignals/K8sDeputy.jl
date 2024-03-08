@@ -15,7 +15,7 @@ end
         @test !deputy.ready
         @test !deputy.shutting_down
 
-        readied(deputy)
+        readied!(deputy)
         @test deputy.ready
         @test !deputy.shutting_down
     end
@@ -49,7 +49,7 @@ end
     end
 
     # Note: If a non-mocked `exit(0)` is called it may appear that all tests have passed.
-    @testset "shutdown" begin
+    @testset "shutdown!" begin
         @testset "default handler" begin
             deputy = Deputy()
 
@@ -58,7 +58,7 @@ end
             @test_logs(logs...,
                        apply(exit_patcher(rc)) do
                            @mock atexit(() -> @info "SHUTDOWN COMPLETE")
-                           return shutdown(deputy)
+                           return shutdown!(deputy)
                        end)
 
             @test isassigned(rc)
@@ -82,7 +82,7 @@ end
             @test_logs(logs...,
                        apply(exit_patcher(rc)) do
                            @mock atexit(() -> @info "SHUTDOWN COMPLETE")
-                           return shutdown(deputy)
+                           return shutdown!(deputy)
                        end)
 
             @test isassigned(rc)
@@ -99,7 +99,7 @@ end
             @test_logs(logs...,
                        apply(exit_patcher(rc)) do
                            @mock atexit(() -> @info "SHUTDOWN COMPLETE")
-                           return shutdown(deputy)
+                           return shutdown!(deputy)
                        end)
 
             @test isassigned(rc)
@@ -123,7 +123,7 @@ end
             @test_logs(logs...,
                        apply(exit_patcher(rc)) do
                            @mock atexit(() -> @info "SHUTDOWN COMPLETE")
-                           return shutdown(deputy)
+                           return shutdown!(deputy)
                        end)
 
             @test isassigned(rc)
@@ -138,7 +138,7 @@ end
                 atexit(() -> @info "SHUTDOWN COMPLETE")
 
                 deputy = Deputy(; shutdown_handler, shutdown_handler_timeout=Second(1))
-                shutdown(deputy)
+                shutdown!(deputy)
             end
 
             cmd = `$(Base.julia_cmd()) --color=no -e $code`
@@ -169,7 +169,7 @@ end
             r = HTTP.get("http://$localhost:$port/health/live")
             @test r.status == 200
 
-            readied(deputy)
+            readied!(deputy)
 
             r = HTTP.get("http://$localhost:$port/health/ready")
             @test r.status == 200
@@ -177,7 +177,7 @@ end
             r = HTTP.get("http://$localhost:$port/health/live")
             @test r.status == 200
 
-            # Faking shutting down. Normal usage would call `shutdown` but we don't want to
+            # Faking shutting down. Normal usage would call `shutdown!` but we don't want to
             # terminate our test process.
             deputy.shutting_down = true
 
@@ -202,11 +202,11 @@ end
             deputy = Deputy(; shutdown_handler)
             graceful_terminator() do
                 @info "GRACEFUL TERMINATION HANDLER"
-                shutdown(deputy)
+                shutdown!(deputy)
                 return nothing
             end
             K8sDeputy.serve!(deputy, Sockets.localhost, $port)
-            readied(deputy)
+            readied!(deputy)
             sleep(60)
         end
 

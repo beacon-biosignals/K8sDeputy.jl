@@ -20,7 +20,7 @@ end
 # Following the Linux convention for pid files:
 # https://refspecs.linuxfoundation.org/FHS_3.0/fhs/ch03s15.html
 entrypoint_pid_file() = joinpath(_deputy_ipc_dir(), "julia-entrypoint.pid")
-entrypoint_pid(pid::Integer) = write(entrypoint_pid_file(), string(pid) * "\n")
+set_entrypoint_pid(pid::Integer) = write(entrypoint_pid_file(), string(pid) * "\n")
 
 function entrypoint_pid()
     pid_file = entrypoint_pid_file()
@@ -50,7 +50,7 @@ Julia process.
 
 ```julia
 app_status = AppStatus()
-graceful_terminator(() -> shutdown(app_status))
+graceful_terminator(() -> shutdown!(app_status))
 ```
 ## Kubernetes Setup
 
@@ -72,13 +72,13 @@ spec:
             command: ["julia", "-e", "using $(@__MODULE__()); graceful_terminate()"]
 ```
 
-Additionally, the entrypoint for the container should also not directly use the Julia
-as init process (PID 1). Instead, users should define their entrypoint similarly to
-`["/bin/sh", "-c", "julia entrypoint.jl; sleep 1"]` as this allows the both the Julia
+Additionally, the entrypoint for the container should also not directly use the Julia process
+as the init process (PID 1). Instead, users should define their entrypoint similarly to
+`["/bin/sh", "-c", "julia entrypoint.jl; sleep 1"]` as this allows for both the Julia
 process and the `preStop` process to cleanly terminate.
 """
 function graceful_terminator(f; set_entrypoint::Bool=true)
-    set_entrypoint && entrypoint_pid(getpid())
+    set_entrypoint && set_entrypoint_pid(getpid())
 
     # Utilize UNIX domain sockets for the IPC. Avoid using network sockets here as we don't
     # want to allow access to this functionality from outside of the localhost. Each process
@@ -135,7 +135,7 @@ function graceful_terminate(pid::Integer=entrypoint_pid(); wait::Bool=true)
     println(sock, "terminate")
     close(sock)
 
-    # Wait for the `pid` to complete. We must to block here as otherwise K8s sends a
+    # Wait for the `pid` to complete. We must block here as otherwise K8s sends a
     # `TERM` signal immediately after the `preStop` completes. If we fail to wait the
     # Julia process won't have a chance to perform a "clean" shutdown. If the Julia process
     # takes longer than `terminationGracePeriodSeconds` to stop then K8s will forcefully
