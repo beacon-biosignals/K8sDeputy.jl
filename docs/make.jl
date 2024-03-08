@@ -15,5 +15,4 @@ makedocs(; modules=[K8sDeputy],
 
 deploydocs(; repo="github.com/beacon-biosignals/K8sDeputy.jl.git",
            push_preview=true,
-           devbranch="main",
-           versions=["stable" => "v^", "dev" => "main"])
+           devbranch="main")
