@@ -1,0 +1,24 @@
+
+---
+apiVersion: skaffold/v4beta2
+kind: Config
+
+build:
+  artifacts:
+    - image: k8s-deputy
+      context: ../..
+      docker:
+        buildArgs:
+          JULIA_VERSION: '{{ .JULIA_VERSION | default "1.10.2" }}'
+  local:
+    useBuildkit: true
+    push: false
+
+deploy:
+  helm:
+    releases:
+      - name: '{{ or (index . "DEPLOYMENT_NAME") "k8s-deputy" }}'
+        chartPath: chart/k8s-deputy
+        setValueTemplates:
+          image.repository: "{{.IMAGE_REPO_k8s_deputy}}"
+          image.tag: "{{.IMAGE_TAG_k8s_deputy}}@{{.IMAGE_DIGEST_k8s_deputy}}"

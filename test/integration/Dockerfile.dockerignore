@@ -1,0 +1,10 @@
+# Using a .dockerignore file relative to the Dockerfile and not the build context:
+# https://docs.docker.com/build/building/context/#filename-and-location
+
+**/*.md
+.git
+.github
+.gitignore
+docs
+test/integration
+!test/integration/entrypoint.jl

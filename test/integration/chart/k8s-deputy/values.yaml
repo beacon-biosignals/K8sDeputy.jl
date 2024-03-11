@@ -1,0 +1,92 @@
+# Default values for k8s-deputyprov.
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+---
+kind: deployment
+replicaCount: 1
+
+
+image:
+  repository: k8s-deputy
+  pullPolicy: IfNotPresent
+  # Overrides the image tag whose default is the chart appVersion.
+  tag: ""
+
+threads: "1,1"
+
+nameOverride: ""
+fullnameOverride: ""
+
+# Wait after Julia process exits to allow `preStop` to complete
+command: ["/bin/sh", "-c", "julia entrypoint.jl; sleep 1"]
+
+env:
+  DEPUTY_IPC_DIR: /mnt/deputy-ipc
+healthCheckPort: 8081
+livenessProbe:
+  httpGet:
+    path: /health/live
+    port: health-check
+  timeoutSeconds: 5
+readinessProbe:
+  httpGet:
+    path: /health/live
+    port: health-check
+  timeoutSeconds: 5
+lifecycle:
+  preStop:
+    exec:
+      command: ["julia", "-e", "using K8sDeputy; graceful_terminate()"]
+
+terminationGracePeriodSeconds: 30
+
+podAnnotations: {}
+podLabels: {}
+
+podSecurityContext: {}
+  # fsGroup: 2000
+
+securityContext:
+  allowPrivilegeEscalation: false
+  capabilities:
+    drop:
+      - all
+  readOnlyRootFilesystem: true
+  # runAsNonRoot: true
+  # runAsUser: 1000
+
+resources: {}
+  # We usually recommend not to specify default resources and to leave this as a conscious
+  # choice for the user. This also increases chances charts run on environments with little
+  # resources, such as Minikube. If you do want to specify resources, uncomment the following
+  # lines, adjust them as necessary, and remove the curly braces after 'resources:'.
+  # limits:
+  #   cpu: 100m
+  #   memory: 128Mi
+  # requests:
+  #   cpu: 100m
+  #   memory: 128Mi
+
+# Additional volumes on the output Deployment definition.
+volumes:
+  - name: deputy-ipc
+    emptyDir:
+      medium: Memory
+# - name: foo
+#   secret:
+#     secretName: mysecret
+#     optional: false
+
+# Additional volumeMounts on the output Deployment definition.
+volumeMounts:
+  - name: deputy-ipc
+    mountPath: /mnt/deputy-ipc
+# - name: foo
+#   mountPath: "/etc/foo"
+#   readOnly: true
+
+nodeSelector: {}
+
+tolerations: []
+
+affinity: {}
