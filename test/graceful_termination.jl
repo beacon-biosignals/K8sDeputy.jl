@@ -71,4 +71,59 @@
         @test output1 == expected
         @test output2 == expected
     end
+
+    # When users set `DEPUTY_IPC_DIR` they may be using a K8s volume. As even `emptyDir`
+    # volumes persist for the lifetime of the pod we may have a named pipe already present
+    # from a previous restart.
+    @testset "bind after restart" begin
+        deputy_ipc_dir = mktempdir()
+        code = quote
+            using K8sDeputy
+            using Sockets: listen
+
+            # Generate the socket as if the K8s pod had restarted and this path remained.
+            # One difference with this setup is the process which created the socket is
+            # still running so there may be a write lock on the file which definitely
+            # wouldn't exist if the pod had restarted. Note that closing the socket will
+            # remove the path.
+            socket_path = K8sDeputy._graceful_terminator_socket_path(getpid())
+            server = listen(socket_path)
+
+            atexit(() -> @info "SHUTDOWN COMPLETE")
+            graceful_terminator(; set_entrypoint=false) do
+                @info "GRACEFUL TERMINATION HANDLER"
+                exit(2)
+                return nothing
+            end
+            sleep(60)
+        end
+
+        cmd = `$(Base.julia_cmd()) --color=no -e $code`
+
+        withenv("DEPUTY_IPC_DIR" => deputy_ipc_dir) do
+            buffer = IOBuffer()
+            p = run(pipeline(cmd; stdout=buffer, stderr=buffer); wait=false)
+            @test timedwait(() -> process_running(p), Second(5)) === :ok
+
+            # Allow some time for Julia to startup and the graceful terminator to be registered.
+            sleep(3)
+
+            # Socket exists as a named pipe
+            socket_path = K8sDeputy._graceful_terminator_socket_path(getpid(p))
+            @test ispath(socket_path)
+            @test !isfile(socket_path)
+
+            # Blocks untils the process terminates
+            @test graceful_terminate(getpid(p)) === nothing
+            @test process_exited(p)
+            @test p.exitcode == 2
+
+            output = String(take!(buffer))
+            expected = """
+                [ Info: GRACEFUL TERMINATION HANDLER
+                [ Info: SHUTDOWN COMPLETE
+                """
+            @test output == expected
+        end
+    end
 end
