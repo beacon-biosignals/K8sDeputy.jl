@@ -24,7 +24,7 @@ set_entrypoint_pid(pid::Integer) = write(entrypoint_pid_file(), string(pid) * "\
 
 function entrypoint_pid()
     pid_file = entrypoint_pid_file()
-    return isfile(pid_file) ? parse(Int, readchomp(pid_file)) : 1
+    return isfile(pid_file) ? parse(Int32, readchomp(pid_file)) : Int32(1)
 end
 
 # https://docs.libuv.org/en/v1.x/process.html#c.uv_kill
@@ -115,12 +115,12 @@ function graceful_terminator(f; set_entrypoint::Bool=true)
 end
 
 """
-    graceful_terminate(pid::Integer=entrypoint_pid(); wait::Bool=true) -> Nothing
+    graceful_terminate(pid::Int32=entrypoint_pid(); wait::Bool=true) -> Nothing
 
 Initiates the execution of the `graceful_terminator` user callback in the process `pid`. See
 `graceful_terminator` for more details.
 """
-function graceful_terminate(pid::Integer=entrypoint_pid(); wait::Bool=true)
+function graceful_terminate(pid::Int32=entrypoint_pid(); wait::Bool=true)
     # Note: The follow dead code has been left here purposefully as an example of how to
     # view output when running via `preStop`.
     #

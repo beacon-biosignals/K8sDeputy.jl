@@ -10,5 +10,6 @@ export Deputy, graceful_terminator, readied!, shutdown!, graceful_terminate
 include("graceful_termination.jl")
 include("health.jl")
 include("server.jl")
+include("deprecated.jl")
 
 end # module K8sDeputy
