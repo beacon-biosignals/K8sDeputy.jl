@@ -89,7 +89,7 @@ function graceful_terminator(f; set_entrypoint::Bool=true)
 
     # Remove any pre-existing named pipe as otherwise this will cause our `listen` call to
     # fail. Should be safe to remove this file as it has been reserved for this PID. Only
-    # should be needed in the scenarion where the K8s pod has been restarted and the
+    # should be needed in the scenario where the K8s pod has been restarted and the
     # location of the socket exists in a K8s volume.
     ispath(socket_path) && rm(socket_path)
 
