@@ -13,7 +13,8 @@ _deputy_ipc_dir() = get(tempdir, ENV, "DEPUTY_IPC_DIR")
 
 # Prefer using UNIX domain sockets but if the `DEPUTY_IPC_DIR` is set assume the file
 # system is read-only and use a named pipe instead.
-function _socket_path(name)
+function _graceful_terminator_socket_path(pid::Int32)
+    name = "graceful-terminator.$pid"
     return haskey(ENV, "DEPUTY_IPC_DIR") ? joinpath(_deputy_ipc_dir(), name) : name
 end
 
@@ -24,7 +25,7 @@ set_entrypoint_pid(pid::Integer) = write(entrypoint_pid_file(), string(pid) * "\
 
 function entrypoint_pid()
     pid_file = entrypoint_pid_file()
-    return isfile(pid_file) ? parse(Int, readchomp(pid_file)) : 1
+    return isfile(pid_file) ? parse(Int32, readchomp(pid_file)) : Int32(1)
 end
 
 # https://docs.libuv.org/en/v1.x/process.html#c.uv_kill
@@ -80,11 +81,19 @@ process and the `preStop` process to cleanly terminate.
 function graceful_terminator(f; set_entrypoint::Bool=true)
     set_entrypoint && set_entrypoint_pid(getpid())
 
-    # Utilize UNIX domain sockets for the IPC. Avoid using network sockets here as we don't
-    # want to allow access to this functionality from outside of the localhost. Each process
-    # uses a distinct socket name allowing for multiple Julia processes to allow independent
-    # use of the graceful terminator.
-    server = listen(_socket_path("graceful-terminator.$(getpid())"))
+    # Utilize UNIX domain sockets or named pipes for the IPC. Avoid using network sockets
+    # here as we don't want to allow access to this functionality from outside of the
+    # localhost. Each process uses a distinct socket name allowing for multiple Julia
+    # processes to allow independent use of the graceful terminator.
+    socket_path = _graceful_terminator_socket_path(getpid())
+
+    # Remove any pre-existing named pipe as otherwise this will cause our `listen` call to
+    # fail. Should be safe to remove this file as it has been reserved for this PID. Only
+    # should be needed in the scenario where the K8s pod has been restarted and the
+    # location of the socket exists in a K8s volume.
+    ispath(socket_path) && rm(socket_path)
+
+    server = listen(socket_path)
 
     t = Threads.@spawn begin
         while isopen(server)
@@ -115,12 +124,12 @@ function graceful_terminator(f; set_entrypoint::Bool=true)
 end
 
 """
-    graceful_terminate(pid::Integer=entrypoint_pid(); wait::Bool=true) -> Nothing
+    graceful_terminate(pid::Int32=entrypoint_pid(); wait::Bool=true) -> Nothing
 
 Initiates the execution of the `graceful_terminator` user callback in the process `pid`. See
 `graceful_terminator` for more details.
 """
-function graceful_terminate(pid::Integer=entrypoint_pid(); wait::Bool=true)
+function graceful_terminate(pid::Int32=entrypoint_pid(); wait::Bool=true)
     # Note: The follow dead code has been left here purposefully as an example of how to
     # view output when running via `preStop`.
     #
@@ -131,7 +140,7 @@ function graceful_terminate(pid::Integer=entrypoint_pid(); wait::Bool=true)
     #     println(io, "preStop called")
     # end
 
-    sock = connect(_socket_path("graceful-terminator.$pid"))
+    sock = connect(_graceful_terminator_socket_path(pid))
     println(sock, "terminate")
     close(sock)
 
