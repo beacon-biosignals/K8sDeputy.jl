@@ -6,7 +6,7 @@ function _default_port()
 end
 
 """
-    K8sDeputy.serve!(deputy::Deputy, [host], [port::Integer]) -> HTTP.Server
+    K8sDeputy.serve!(deputy::Deputy, [host], [port::Integer]; kwargs...) -> HTTP.Server
 
 Starts a non-blocking `HTTP.Server` responding to requests to `deputy` health checks. The
 following health check endpoints are available:
@@ -23,11 +23,13 @@ These endpoints will respond with HTTP status `200 OK` on success or
   `Sockets.localhost`.
 - `port::Integer` (optional): The port to listen on. Defaults to the port number specified
   by the environmental variable `DEPUTY_HEALTH_CHECK_PORT`, otherwise `8081`.
+
+Any `kwargs` provided are passed to `HTTP.serve!`.
 """
-function serve!(deputy::Deputy, host=localhost, port::Integer=_default_port())
+function serve!(deputy::Deputy, host=localhost, port::Integer=_default_port(); kwargs...)
     router = HTTP.Router()
     HTTP.register!(router, "/health/live", liveness_endpoint(deputy))
     HTTP.register!(router, "/health/ready", readiness_endpoint(deputy))
 
-    return HTTP.serve!(router, host, port)
+    return HTTP.serve!(router, host, port; kwargs...)
 end
