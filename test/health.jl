@@ -160,7 +160,7 @@ end
     @testset "serve!" begin
         deputy = Deputy()
         port = rand(EPHEMERAL_PORT_RANGE)
-        server = serve!(deputy, localhost, port)
+        server = serve!(deputy, localhost, port; verbose=-1)
 
         try
             r = HTTP.get("http://$localhost:$port/health/ready"; status_exception=false)
