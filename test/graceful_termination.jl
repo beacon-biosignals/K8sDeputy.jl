@@ -3,7 +3,7 @@
         code = quote
             using K8sDeputy, Mocking
             Mocking.activate()
-            ipc_dir_patch = @patch K8sDeputy._deputy_ipc_dir() = $DEPUTY_IPC_DIR
+            ipc_dir_patch = @patch K8sDeputy._ipc_dir() = $IPC_DIR
 
             atexit(() -> @info "SHUTDOWN COMPLETE")
             apply(ipc_dir_patch) do
@@ -46,7 +46,7 @@
         code = quote
             using K8sDeputy, Mocking
             Mocking.activate()
-            ipc_dir_patch = @patch K8sDeputy._deputy_ipc_dir() = $DEPUTY_IPC_DIR
+            ipc_dir_patch = @patch K8sDeputy._ipc_dir() = $IPC_DIR
 
             atexit(() -> @info "SHUTDOWN COMPLETE")
             apply(ipc_dir_patch) do
@@ -88,15 +88,14 @@
         @test output2 == expected
     end
 
-    # When users set `DEPUTY_IPC_DIR` they may be using a K8s volume. As even `emptyDir`
-    # volumes persist for the lifetime of the pod we may have a UNIX-domain socket already
-    # present from a previous restart.
+    # K8s volumes persist for the lifetime of the pod (even a `emptyDir`). If a container
+    # restarts we may already have a UNIX-domain socket present in the IPC directory.
     @testset "bind after restart" begin
         code = quote
             using K8sDeputy, Mocking
             using Sockets: listen
             Mocking.activate()
-            ipc_dir_patch = @patch K8sDeputy._deputy_ipc_dir() = $DEPUTY_IPC_DIR
+            ipc_dir_patch = @patch K8sDeputy._ipc_dir() = $IPC_DIR
 
             # Generate the socket as if the K8s pod had restarted and this path remained.
             # One difference with this setup is the process which created the socket is

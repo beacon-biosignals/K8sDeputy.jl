@@ -196,7 +196,7 @@ end
         code = quote
             using K8sDeputy, Mocking, Sockets
             Mocking.activate()
-            ipc_dir_patch = @patch K8sDeputy._deputy_ipc_dir() = $DEPUTY_IPC_DIR
+            ipc_dir_patch = @patch K8sDeputy._ipc_dir() = $IPC_DIR
 
             shutdown_handler() = @info "SHUTDOWN HANDLER"
             atexit(() -> @info "SHUTDOWN COMPLETE")
