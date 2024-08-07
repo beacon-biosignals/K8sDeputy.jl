@@ -192,27 +192,30 @@ end
     end
 
     @testset "graceful termination" begin
-        deputy_ipc_dir = mktempdir()
         port = rand(EPHEMERAL_PORT_RANGE)
         code = quote
-            using K8sDeputy, Sockets
+            using K8sDeputy, Mocking, Sockets
+            Mocking.activate()
+            ipc_dir_patch = @patch K8sDeputy._ipc_dir() = $IPC_DIR
 
             shutdown_handler() = @info "SHUTDOWN HANDLER"
             atexit(() -> @info "SHUTDOWN COMPLETE")
 
             deputy = Deputy(; shutdown_handler)
-            graceful_terminator(; set_entrypoint=false) do
-                @info "GRACEFUL TERMINATION HANDLER"
-                shutdown!(deputy)
-                return nothing
+            apply(ipc_dir_patch) do
+                graceful_terminator(; set_entrypoint=false) do
+                    @info "GRACEFUL TERMINATION HANDLER"
+                    shutdown!(deputy)
+                    return nothing
+                end
             end
             K8sDeputy.serve!(deputy, Sockets.localhost, $port)
             readied!(deputy)
             sleep(60)
         end
+        code = join(code.args, '\n')  # Evaluate at top-level
 
         cmd = `$(Base.julia_cmd()) --color=no -e $code`
-        cmd = addenv(cmd, "DEPUTY_IPC_DIR" => deputy_ipc_dir)
         buffer = IOBuffer()
         p = run(pipeline(cmd; stdout=buffer, stderr=buffer); wait=false)
         @test timedwait(() -> process_running(p), Second(5)) === :ok
@@ -222,7 +225,7 @@ end
         end === :ok
 
         # Blocks untils the process terminates
-        withenv("DEPUTY_IPC_DIR" => deputy_ipc_dir) do
+        apply(ipc_dir_patch) do
             return graceful_terminate(getpid(p))
         end
         @test process_exited(p)

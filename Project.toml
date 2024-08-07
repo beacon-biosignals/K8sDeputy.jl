@@ -1,7 +1,7 @@
 name = "K8sDeputy"
 uuid = "2481ae95-212f-4650-bb21-d53ea3caf09f"
 authors = ["Beacon Biosignals, Inc"]
-version = "0.1.4"
+version = "0.2.0"
 
 [deps]
 Dates = "ade2ca70-3891-5945-98fb-dc099432e06a"
@@ -13,7 +13,7 @@ Sockets = "6462fe0b-24de-5631-8697-dd941f90decc"
 Aqua = "0.7"
 Dates = "1"
 HTTP = "1"
-Mocking = "0.7"
+Mocking = "0.7, 0.8"
 Sockets = "1"
 Test = "1"
 julia = "1.6"
