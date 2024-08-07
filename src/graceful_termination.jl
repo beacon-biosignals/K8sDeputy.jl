@@ -9,18 +9,17 @@
 
 # Linux stores PID files and UNIX-domain sockets in `/run`. Users with K8s containers
 # utilizing read-only file systems should make use of a volume mount to allow K8sDeputy.jl
-# to write to `/run`. Users can change the IPC directory by specifying `DEPUTY_IPC_DIR` but
-# this is mainly just used for testing.
-_deputy_ipc_dir() = get(ENV, "DEPUTY_IPC_DIR", "/run")
+# to write to `/run`.
+_deputy_ipc_dir() = "/run"
 
 # Write transient UNIX-domain sockets to the IPC directory.
 function _graceful_terminator_socket_path(pid::Int32)
-    return joinpath(_deputy_ipc_dir(), "graceful-terminator.$pid.socket")
+    return joinpath(@mock(_deputy_ipc_dir()), "graceful-terminator.$pid.socket")
 end
 
 # Following the Linux convention for pid files:
 # https://refspecs.linuxfoundation.org/FHS_3.0/fhs/ch03s15.html
-entrypoint_pid_file() = joinpath(_deputy_ipc_dir(), "julia-entrypoint.pid")
+entrypoint_pid_file() = joinpath(@mock(_deputy_ipc_dir()), "julia-entrypoint.pid")
 set_entrypoint_pid(pid::Integer) = write(entrypoint_pid_file(), string(pid) * "\n")
 
 function entrypoint_pid()

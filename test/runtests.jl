@@ -12,6 +12,9 @@ const EPHEMERAL_PORT_RANGE = 49152:65535
 
 Mocking.activate()
 
+const DEPUTY_IPC_DIR = mktempdir()
+ipc_dir_patch = @patch K8sDeputy._deputy_ipc_dir() = DEPUTY_IPC_DIR
+
 @testset "K8sDeputy.jl" begin
     @testset "Aqua" begin
         Aqua.test_all(K8sDeputy; ambiguities=false)
