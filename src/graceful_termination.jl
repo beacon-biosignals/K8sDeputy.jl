@@ -9,23 +9,18 @@
 
 # Linux typically stores PID files in `/run` which requires root access. For systems with
 # read-only file systems we need to support a user specified writable volume.
-_deputy_ipc_dir() = get(tempdir, ENV, "DEPUTY_IPC_DIR")
+_deputy_ipc_dir() = get(ENV, "DEPUTY_IPC_DIR", "/run")
 
-# Prefer using UNIX domain sockets but if the `DEPUTY_IPC_DIR` is set assume the file
-# system is read-only and use a named pipe instead.
+# Write transient UNIX-domain sockets to the IPC directory.
 function _graceful_terminator_socket_path(pid::Int32)
-    name = "graceful-terminator.$pid"
-    return haskey(ENV, "DEPUTY_IPC_DIR") ? joinpath(_deputy_ipc_dir(), name) : name
+    name = "graceful-terminator.$pid.sock"
+    return joinpath(_deputy_ipc_dir(), name)
 end
 
 # Following the Linux convention for pid files:
 # https://refspecs.linuxfoundation.org/FHS_3.0/fhs/ch03s15.html
 entrypoint_pid_file() = joinpath(_deputy_ipc_dir(), "julia-entrypoint.pid")
-function set_entrypoint_pid(pid::Integer)
-    file = entrypoint_pid_file()
-    mkpath(dirname(file))
-    return write(file, string(pid) * "\n")
-end
+set_entrypoint_pid(pid::Integer) = write(entrypoint_pid_file(), string(pid) * "\n")
 
 function entrypoint_pid()
     pid_file = entrypoint_pid_file()
@@ -85,15 +80,15 @@ process and the `preStop` process to cleanly terminate.
 function graceful_terminator(f; set_entrypoint::Bool=true)
     set_entrypoint && set_entrypoint_pid(getpid())
 
-    # Utilize UNIX domain sockets or named pipes for the IPC. Avoid using network sockets
-    # here as we don't want to allow access to this functionality from outside of the
-    # localhost. Each process uses a distinct socket name allowing for multiple Julia
-    # processes to allow independent use of the graceful terminator.
+    # Utilize UNIX-domain sockets (Linux) or named pipes (Windows) for the IPC. Avoid using
+    # network sockets here as we don't want to allow access to this functionality from
+    # outside of the localhost. Each process uses a distinct socket name allowing for
+    # multiple Julia processes to allow independent use of the graceful terminator.
     socket_path = _graceful_terminator_socket_path(getpid())
 
-    # Remove any pre-existing named pipe as otherwise this will cause our `listen` call to
-    # fail. Should be safe to remove this file as it has been reserved for this PID. Only
-    # should be needed in the scenario where the K8s pod has been restarted and the
+    # Remove any pre-existing UNIX-domain socket as otherwise this will cause our `listen`
+    # call to fail. Should be safe to remove this file as it has been reserved for this PID.
+    # Only should be needed in the scenario where the K8s pod has been restarted and the
     # location of the socket exists in a K8s volume.
     ispath(socket_path) && rm(socket_path)
 

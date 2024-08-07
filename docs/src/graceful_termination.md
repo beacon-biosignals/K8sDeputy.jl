@@ -69,7 +69,32 @@ Finally, the entrypoint for the container should also not directly use the Julia
 
 ### Read-only Filesystem
 
-If you have a read-only filesystem on your container you'll need to configure a writeable volume mount for K8sDeputy.jl. The `DEPUTY_IPC_DIR` environmental variable can be used to instruct K8sDeputy.jl where to store the named pipes it creates for interprocess communication:
+If you have a read-only filesystem on your container you'll need to configure a writeable `/run` directory for K8sDeputy.jl so it can create UNIX-domain sockets for interprocess communication:
+
+```yaml
+apiVersion: v1
+kind: Pod
+spec:
+  containers:
+    - name: app
+      # command: ["/bin/sh", "-c", "julia entrypoint.jl; sleep 1"]
+      lifecycle:
+        preStop:
+          exec:
+            command: ["julia", "-e", "using K8sDeputy; graceful_terminate()"]
+      securityContext:
+        readOnlyRootFilesystem: true
+      volumeMounts:
+        - name: ipc
+          mountPath: /run
+          subPath: app  # Set the `subPath` to the container name to ensure per-container isolation
+  volumes:
+    - name: ipc
+      emptyDir:
+        medium: Memory
+```
+
+Alternatively, if you don't want to specify the write location for these IPC files you can use the `DEPUTY_IPC_DIR` environmental variable:
 
 ```yaml
 apiVersion: v1
@@ -88,8 +113,9 @@ spec:
       securityContext:
         readOnlyRootFilesystem: true
       volumeMounts:
-        - mountPath: /mnt/deputy-ipc
-          name: deputy-ipc
+        - name: deputy-ipc
+          mountPath: /mnt/deputy-ipc
+          subPath: app  # Set the `subPath` to the container name to ensure per-container isolation
   volumes:
     - name: deputy-ipc
       emptyDir:
