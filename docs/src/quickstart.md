@@ -27,9 +27,6 @@ For users who want to get started quickly you can use the following template to 
      containers:
        - name: app
          command: ["/bin/sh", "-c", "julia entrypoint.jl; sleep 1"]
-         env:
-           - name: DEPUTY_IPC_DIR
-             value: /mnt/deputy-ipc
          ports:
            - name: health-check
              containerPort: 8081  # Default K8sDeputy.jl heath check port
@@ -54,11 +51,12 @@ For users who want to get started quickly you can use the following template to 
                - all
            readOnlyRootFilesystem: true
          volumeMounts:
-           - mountPath: /mnt/deputy-ipc
-             name: deputy-ipc
+           - name: ipc
+              mountPath: /run
+              subPath: app  # Set the `subPath` to the container name to ensure per-container isolation
      terminationGracePeriodSeconds: 30
      volumes:
-       - name: deputy-ipc
+       - name: ipc
          emptyDir:
            medium: Memory
    ```

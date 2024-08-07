@@ -1,4 +1,6 @@
 @testset "graceful_terminator" begin
+    deputy_ipc_dir = mktempdir()
+
     @testset "Julia entrypoint" begin
         code = quote
             using K8sDeputy
@@ -12,6 +14,7 @@
         end
 
         cmd = `$(Base.julia_cmd()) --color=no -e $code`
+        cmd = addenv(cmd, "DEPUTY_IPC_DIR" => deputy_ipc_dir)
         buffer = IOBuffer()
         p = run(pipeline(cmd; stdout=buffer, stderr=buffer); wait=false)
         @test timedwait(() -> process_running(p), Second(5)) === :ok
@@ -21,7 +24,9 @@
 
         # When no PID is passed in the process ID is read from the Julia entrypoint file.
         # Blocks untils the process terminates.
-        @test graceful_terminate() === nothing
+        withenv("DEPUTY_IPC_DIR" => deputy_ipc_dir) do
+            @test graceful_terminate() === nothing
+        end
 
         @test process_exited(p)
         @test p.exitcode == 2
@@ -47,6 +52,7 @@
         end
 
         cmd = `$(Base.julia_cmd()) --color=no -e $code`
+        cmd = addenv(cmd, "DEPUTY_IPC_DIR" => deputy_ipc_dir)
         buffer1 = IOBuffer()
         buffer2 = IOBuffer()
         p1 = run(pipeline(cmd; stdout=buffer1, stderr=buffer1); wait=false)
@@ -57,8 +63,10 @@
         sleep(3)
 
         # Blocks untils the process terminates
-        @test graceful_terminate(getpid(p1)) === nothing
-        @test graceful_terminate(getpid(p2)) === nothing
+        withenv("DEPUTY_IPC_DIR" => deputy_ipc_dir) do
+            @test graceful_terminate(getpid(p1)) === nothing
+            @test graceful_terminate(getpid(p2)) === nothing
+        end
         @test process_exited(p1)
         @test process_exited(p2)
 
@@ -73,10 +81,9 @@
     end
 
     # When users set `DEPUTY_IPC_DIR` they may be using a K8s volume. As even `emptyDir`
-    # volumes persist for the lifetime of the pod we may have a named pipe already present
-    # from a previous restart.
+    # volumes persist for the lifetime of the pod we may have a UNIX-domain socket already
+    # present from a previous restart.
     @testset "bind after restart" begin
-        deputy_ipc_dir = mktempdir()
         code = quote
             using K8sDeputy
             using Sockets: listen
@@ -99,31 +106,33 @@
         end
 
         cmd = `$(Base.julia_cmd()) --color=no -e $code`
+        cmd = addenv(cmd, "DEPUTY_IPC_DIR" => deputy_ipc_dir)
+        buffer = IOBuffer()
+        p = run(pipeline(cmd; stdout=buffer, stderr=buffer); wait=false)
+        @test timedwait(() -> process_running(p), Second(5)) === :ok
 
-        withenv("DEPUTY_IPC_DIR" => deputy_ipc_dir) do
-            buffer = IOBuffer()
-            p = run(pipeline(cmd; stdout=buffer, stderr=buffer); wait=false)
-            @test timedwait(() -> process_running(p), Second(5)) === :ok
+        # Allow some time for Julia to startup and the graceful terminator to be registered.
+        sleep(3)
 
-            # Allow some time for Julia to startup and the graceful terminator to be registered.
-            sleep(3)
-
-            # Socket exists as a named pipe
-            socket_path = K8sDeputy._graceful_terminator_socket_path(getpid(p))
-            @test ispath(socket_path)
-            @test !isfile(socket_path)
-
-            # Blocks untils the process terminates
-            @test graceful_terminate(getpid(p)) === nothing
-            @test process_exited(p)
-            @test p.exitcode == 2
-
-            output = String(take!(buffer))
-            expected = """
-                [ Info: GRACEFUL TERMINATION HANDLER
-                [ Info: SHUTDOWN COMPLETE
-                """
-            @test output == expected
+        # Socket exists as a UNIX-domain socket
+        socket_path = withenv("DEPUTY_IPC_DIR" => deputy_ipc_dir) do
+            return K8sDeputy._graceful_terminator_socket_path(getpid(p))
         end
+        @test ispath(socket_path)
+        @test !isfile(socket_path)
+
+        # Blocks untils the process terminates
+        withenv("DEPUTY_IPC_DIR" => deputy_ipc_dir) do
+            @test graceful_terminate(getpid(p)) === nothing
+        end
+        @test process_exited(p)
+        @test p.exitcode == 2
+
+        output = String(take!(buffer))
+        expected = """
+            [ Info: GRACEFUL TERMINATION HANDLER
+            [ Info: SHUTDOWN COMPLETE
+            """
+        @test output == expected
     end
 end

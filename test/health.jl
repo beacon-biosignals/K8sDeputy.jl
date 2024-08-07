@@ -192,6 +192,7 @@ end
     end
 
     @testset "graceful termination" begin
+        deputy_ipc_dir = mktempdir()
         port = rand(EPHEMERAL_PORT_RANGE)
         code = quote
             using K8sDeputy, Sockets
@@ -211,6 +212,7 @@ end
         end
 
         cmd = `$(Base.julia_cmd()) --color=no -e $code`
+        cmd = addenv(cmd, "DEPUTY_IPC_DIR" => deputy_ipc_dir)
         buffer = IOBuffer()
         p = run(pipeline(cmd; stdout=buffer, stderr=buffer); wait=false)
         @test timedwait(() -> process_running(p), Second(5)) === :ok
@@ -220,7 +222,9 @@ end
         end === :ok
 
         # Blocks untils the process terminates
-        graceful_terminate(getpid(p))
+        withenv("DEPUTY_IPC_DIR" => deputy_ipc_dir) do
+            return graceful_terminate(getpid(p))
+        end
         @test process_exited(p)
         @test p.exitcode == 1
 
