@@ -7,14 +7,15 @@
 # from experimenting with this there are a few issues such as being unable to use locks or
 # printing (`jl_safe_printf` does work).
 
-# Linux typically stores PID files in `/run` which requires root access. For systems with
-# read-only file systems we need to support a user specified writable volume.
+# Linux stores PID files and UNIX-domain sockets in `/run`. Users with K8s containers
+# utilizing read-only file systems should make use of a volume mount to allow K8sDeputy.jl
+# to write to `/run`. Users can change the IPC directory by specifying `DEPUTY_IPC_DIR` but
+# this is mainly just used for testing.
 _deputy_ipc_dir() = get(ENV, "DEPUTY_IPC_DIR", "/run")
 
 # Write transient UNIX-domain sockets to the IPC directory.
 function _graceful_terminator_socket_path(pid::Int32)
-    name = "graceful-terminator.$pid.sock"
-    return joinpath(_deputy_ipc_dir(), name)
+    return joinpath(_deputy_ipc_dir(), "graceful-terminator.$pid.sock")
 end
 
 # Following the Linux convention for pid files:
