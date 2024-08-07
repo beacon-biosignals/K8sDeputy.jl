@@ -15,7 +15,7 @@ _deputy_ipc_dir() = get(ENV, "DEPUTY_IPC_DIR", "/run")
 
 # Write transient UNIX-domain sockets to the IPC directory.
 function _graceful_terminator_socket_path(pid::Int32)
-    return joinpath(_deputy_ipc_dir(), "graceful-terminator.$pid.sock")
+    return joinpath(_deputy_ipc_dir(), "graceful-terminator.$pid.socket")
 end
 
 # Following the Linux convention for pid files:
