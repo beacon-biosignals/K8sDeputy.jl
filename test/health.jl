@@ -223,7 +223,7 @@ end
 
         # Blocks untils the process terminates
         withenv("DEPUTY_IPC_DIR" => deputy_ipc_dir) do
-            graceful_terminate(getpid(p))
+            return graceful_terminate(getpid(p))
         end
         @test process_exited(p)
         @test p.exitcode == 1

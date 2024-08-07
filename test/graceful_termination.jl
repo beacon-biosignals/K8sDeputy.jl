@@ -116,7 +116,7 @@
 
         # Socket exists as a UNIX-domain socket
         socket_path = withenv("DEPUTY_IPC_DIR" => deputy_ipc_dir) do
-            K8sDeputy._graceful_terminator_socket_path(getpid(p))
+            return K8sDeputy._graceful_terminator_socket_path(getpid(p))
         end
         @test ispath(socket_path)
         @test !isfile(socket_path)
