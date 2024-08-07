@@ -93,31 +93,3 @@ spec:
       emptyDir:
         medium: Memory
 ```
-
-Alternatively, if you don't want to specify the write location for these IPC files you can use the `DEPUTY_IPC_DIR` environmental variable:
-
-```yaml
-apiVersion: v1
-kind: Pod
-spec:
-  containers:
-    - name: app
-      # command: ["/bin/sh", "-c", "julia entrypoint.jl; sleep 1"]
-      env:
-        - name: DEPUTY_IPC_DIR
-          value: /mnt/deputy-ipc
-      lifecycle:
-        preStop:
-          exec:
-            command: ["julia", "-e", "using K8sDeputy; graceful_terminate()"]
-      securityContext:
-        readOnlyRootFilesystem: true
-      volumeMounts:
-        - name: deputy-ipc
-          mountPath: /mnt/deputy-ipc
-          subPath: app  # Set the `subPath` to the container name to ensure per-container isolation
-  volumes:
-    - name: deputy-ipc
-      emptyDir:
-        medium: Memory
-```
