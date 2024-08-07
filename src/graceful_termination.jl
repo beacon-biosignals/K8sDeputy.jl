@@ -13,7 +13,7 @@ _deputy_ipc_dir() = get(tempdir, ENV, "DEPUTY_IPC_DIR")
 
 # Prefer using UNIX domain sockets but if the `DEPUTY_IPC_DIR` is set assume the file
 # system is read-only and use a named pipe instead.
-function _graceful_terminator_socket_path(pid::Int32) =
+function _graceful_terminator_socket_path(pid::Int32)
     return joinpath(_deputy_ipc_dir(), "graceful-terminator.$pid")
 end
 
