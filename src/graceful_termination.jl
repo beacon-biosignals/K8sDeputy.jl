@@ -101,6 +101,7 @@ function graceful_terminator(f; set_entrypoint::Bool=true)
             request = readline(sock)
 
             if request == "terminate"
+                @debug "Received graceful termination request"
                 try
                     f()  # Expecting user-defined function to call `exit`
                 catch e

@@ -53,6 +53,7 @@ function shutdown!(deputy::Deputy)
     # Abend if already shutting down
     deputy.shutting_down && return nothing
     deputy.shutting_down = true
+    @debug "Initiating deputy shutdown"
 
     if !isnothing(deputy.shutdown_handler)
         t = @async deputy.shutdown_handler()
