@@ -1,8 +1,15 @@
 #!/bin/bash
 
+# XXX: this assumes that this script's realpath is in the root of the K8sDeputy
+# project.  must be updated if we move to etc/ or bin/ or something.
+#
+# Also `realpath` may not be universally available so may want to figure out
+# something more generic to follow symlinks and resolve relative paths etc.
 project=$(realpath $0 | xargs dirname)
+# TODO: remove this sanity check when we're confident that it's working
+echo "script is running from $project" >&2
 
-echo "script is running from $project"
+# TODO: printing this just to be able to know what to `kill`
 echo "my PID is $$"
 
 terminate_supervised()
