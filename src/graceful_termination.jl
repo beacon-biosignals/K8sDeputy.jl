@@ -169,3 +169,13 @@ function graceful_terminate(pid::Int32=entrypoint_pid(); wait::Bool=true)
 
     return nothing
 end
+
+function install_supervise_shim(shims_root::AbstractString)
+    target = abspath(joinpath(@__DIR__, "..", "bin", "supervise.sh"))
+    isfile(target) || error("supervise.sh shim not found at $target")
+
+    mkpath(shims_root)
+    link = joinpath(shims_root, "supervise.sh")
+
+    return symlink(target, link)
+end
