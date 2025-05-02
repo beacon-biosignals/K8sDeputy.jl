@@ -14,7 +14,8 @@ echo "my PID is $$"
 
 terminate_supervised()
 {
-    julia --project="$project" -e 'using K8sDeputy; graceful_terminate()'
+    echo "Superviser is terminating via K8sDeputy.graceful_terminate()..."
+    JULIA_LOAD_PATH="$project:$JULIA_LOAD_PATH" julia -e '@show Base.load_path(); using K8sDeputy; graceful_terminate()'
     wait $child
     exit $?
 }
