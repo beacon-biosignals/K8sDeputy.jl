@@ -5,9 +5,9 @@
 #
 # Also `realpath` may not be universally available so may want to figure out
 # something more generic to follow symlinks and resolve relative paths etc.
-project=$(realpath $0 | xargs dirname)
+project=$(realpath $0 | xargs dirname | xargs dirname)
 # TODO: remove this sanity check when we're confident that it's working
-echo "script is running from $project" >&2
+echo "inferred project=$project" >&2
 
 # TODO: printing this just to be able to know what to `kill`
 echo "my PID is $$"

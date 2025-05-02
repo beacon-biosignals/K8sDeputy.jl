@@ -177,5 +177,7 @@ function install_supervise_shim(shims_root::AbstractString)
     mkpath(shims_root)
     link = joinpath(shims_root, "supervise.sh")
 
+    @info "Linking $target -> $link"
+
     return symlink(target, link)
 end
