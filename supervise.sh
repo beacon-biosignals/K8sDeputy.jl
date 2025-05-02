@@ -16,8 +16,6 @@ terminate_supervised()
 "$@" &
 child=$!
 
-# TODO: check that nc is available before starting
-# trap TERM to write "terminate" to socket with nc
 trap "terminate_supervised" TERM INT
 
 wait $child
