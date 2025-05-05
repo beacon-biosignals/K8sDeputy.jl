@@ -1,37 +1,62 @@
 #!/bin/bash
 
-# XXX: this assumes that this script's realpath is one subdirectory deep in the
-# K8sDeputy project.  must be updated if we move it any deeper
-#
-# Also `realpath` may not be universally available so may want to figure out
-# something more generic to follow symlinks and resolve relative paths etc.
-project=$(realpath $0 | xargs dirname | xargs dirname)
-# TODO: remove this sanity check when we're confident that it's working
-echo "inferred project=$project"
+# https://github.com/beacon-biosignals/K8sDeputy.jl/blob/ff1548eba0eb84f463971fafc4839694df004cba/src/graceful_termination.jl#L14
+IPC_DIR="${DEPUTY_IPC_DIR:-/run}"
 
-# TODO: printing this just to be able to know what to `kill`
-echo "my PID is $$"
+# https://github.com/beacon-biosignals/K8sDeputy.jl/blob/ff1548eba0eb84f463971fafc4839694df004cba/src/graceful_termination.jl#L21-L29
+get_pid()
+{
+    PID_FILE="${DEPUTY_IPC_DIR}/julia-entrypoint.pid"
+    # TODO: timeout.  not likely to be critical since we don't call this unitl termination
+    # is requested
+    # until [ -f "${PID_FILE}" ]; do
+    #     sleep 0.1
+    # done
+    if [[ ! -f $PID_FILE ]]; then
+        echo "Failed to find PID file at $PID_FILE" >&2
+        exit 1
+    fi
+    read -r SUPERVISED_PID <"${DEPUTY_IPC_DIR}/julia-entrypoint.pid"
+    if [[ ! SUPERVISED_PID ~= ^[0-9]+$ ]]; then
+        echo "PID file $PID_FILE does not contain a numeric PID: $SUPERVISED_PID" >&2
+        exit 1
+    fi
+}
+
+# https://github.com/beacon-biosignals/K8sDeputy.jl/blob/ff1548eba0eb84f463971fafc4839694df004cba/src/graceful_termination.jl#L16-L19
+get_socket()
+{
+    SOCKET_PATH="${DEPUTY_IPC_DIR}/graceful-terminator.${SUPERVISED_PID}.socket"
+    # TODO: timeout.  not likely to be critical since we don't call this unitl termination
+    # is requested
+    # until [ -e "$SOCKET_PATH" ]; do
+    #     sleep 0.1
+    # done
+    if [[ ! -S $SOCKET_PATH ]]; then
+        echo "Expected socket at $SOCKET_PATH; got something else. $SUPERVISED_PID may be a zombie now" >&2
+        exit 1
+    fi
+    echo "using socket at $SOCKET_PATH"
+}
 
 terminate_supervised()
 {
-    echo "Superviser is terminating via K8sDeputy.graceful_terminate()..."
-    # XXX: this load path injection only works if the active project _already
-    # has_ K8sDeputy somewhere in its dependencies.  The purpose of this is to
-    # make this all work _without_ requiring that K8sDeputy is explicitly
-    # included in the project (i.e., to support use cases where it comes in as a
-    # dependency of a bigger library that wraps it along with other features.)
-    JULIA_LOAD_PATH="$project:$JULIA_LOAD_PATH" julia -e '@show Base.load_path(); using K8sDeputy; graceful_terminate()'
+    # we parse these at termination time because they may not be ready at startup, and
+    # because this matches the behavior of `K8sDeputy.graceful_terminate`
+    get_pid
+    get_socket
+    echo "Gently terminating $SUPERVISED_PID"
+    # https://github.com/beacon-biosignals/K8sDeputy.jl/blob/ff1548eba0eb84f463971fafc4839694df004cba/src/graceful_termination.jl#L143-L144
+    nc -U "$SOCKET_PATH" <<<"terminate"
     wait $child
     exit $?
 }
-
-# TODO: set and validate load path before running?
 
 # start background process
 "$@" &
 child=$!
 
-trap "terminate_supervised" TERM INT
+trap "terminate_supervised" TERM
 
 wait $child
 
