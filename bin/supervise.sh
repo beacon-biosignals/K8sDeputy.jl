@@ -17,7 +17,7 @@ get_pid()
         exit 1
     fi
     read -r SUPERVISED_PID <"${DEPUTY_IPC_DIR}/julia-entrypoint.pid"
-    if [[ ! SUPERVISED_PID ~= ^[0-9]+$ ]]; then
+    if [[ ! $SUPERVISED_PID =~ ^[0-9]+$ ]]; then
         echo "PID file $PID_FILE does not contain a numeric PID: $SUPERVISED_PID" >&2
         exit 1
     fi
