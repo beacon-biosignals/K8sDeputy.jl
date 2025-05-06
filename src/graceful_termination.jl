@@ -7,6 +7,9 @@
 # from experimenting with this there are a few issues such as being unable to use locks or
 # printing (`jl_safe_printf` does work).
 
+# NOTE: if you update any paths, filenames, or the messages expected in the socket, you must
+# also update /bin/supervise.sh to match.
+
 # Linux stores PID files and UNIX-domain sockets in `/run`. Users with K8s containers
 # utilizing read-only file systems should make use of a volume mount to allow K8sDeputy.jl
 # to write to `/run`. Users can change the IPC directory by specifying `DEPUTY_IPC_DIR` but
