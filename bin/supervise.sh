@@ -1,5 +1,35 @@
 #!/bin/bash
 
+logger()
+{
+    level=${1:-info}
+    if [[ -n $JQ ]]; then
+        jq --raw-input --raw-output --compact-output \
+           --arg status "$level" \
+           '{
+                timestamp: now |
+                           {
+                               # just the date-time stamp w/o Z
+                               datetime: . | strftime("%Y-%m-%dT%H:%M:%S"),
+                               # ms part of fractional seconds w/o leading 0
+                               ms: . | modf | .[0] | "\(.)" | .[1:5]
+                           } |
+                           "\(.datetime)\(.ms)Z",
+                status: $status,
+                message: .
+            }'
+    else
+        # provide a _very_ minimal fallback here
+        read message
+        echo "{\"status\":\"$level\",\"message\":\"$message\"}"
+    fi
+}
+
+JQ=$(command -v jq)
+if [[ -z $JQ ]]; then
+    echo "logging works best with jq" | logger warn
+fi
+
 # https://github.com/beacon-biosignals/K8sDeputy.jl/blob/ff1548eba0eb84f463971fafc4839694df004cba/src/graceful_termination.jl#L14
 IPC_DIR="${DEPUTY_IPC_DIR:-/run}"
 
@@ -13,12 +43,12 @@ get_pid()
     #     sleep 0.1
     # done
     if [[ ! -f $PID_FILE ]]; then
-        echo "Failed to find PID file at $PID_FILE" >&2
+        echo "Failed to find PID file at $PID_FILE" | logger error
         exit 1
     fi
     read -r SUPERVISED_PID <"${DEPUTY_IPC_DIR}/julia-entrypoint.pid"
     if [[ ! $SUPERVISED_PID =~ ^[0-9]+$ ]]; then
-        echo "PID file $PID_FILE does not contain a numeric PID: $SUPERVISED_PID" >&2
+        echo "PID file $PID_FILE does not contain a numeric PID: $SUPERVISED_PID" | logger error
         exit 1
     fi
 }
@@ -33,10 +63,10 @@ get_socket()
     #     sleep 0.1
     # done
     if [[ ! -S $SOCKET_PATH ]]; then
-        echo "Expected socket at $SOCKET_PATH; got something else. $SUPERVISED_PID may be a zombie now" >&2
+        echo "Expected socket at $SOCKET_PATH; got something else. $SUPERVISED_PID may be a zombie now" | logger error
         exit 1
     fi
-    echo "using socket at $SOCKET_PATH"
+    echo "using socket at $SOCKET_PATH" | logger
 }
 
 terminate_supervised()
@@ -45,7 +75,7 @@ terminate_supervised()
     # because this matches the behavior of `K8sDeputy.graceful_terminate`
     get_pid
     get_socket
-    echo "Gently terminating $SUPERVISED_PID"
+    echo "Gently terminating $SUPERVISED_PID" | logger
     # https://github.com/beacon-biosignals/K8sDeputy.jl/blob/ff1548eba0eb84f463971fafc4839694df004cba/src/graceful_termination.jl#L143-L144
     nc -U "$SOCKET_PATH" <<<"terminate"
     wait $child
@@ -53,7 +83,7 @@ terminate_supervised()
 }
 
 if ! command -v nc; then
-    echo "supervise.sh requires netcat (nc)" >&2
+    echo "supervise.sh requires netcat (nc)" | logger error
     exit 1
 fi
 
@@ -64,5 +94,3 @@ child=$!
 trap "terminate_supervised" TERM
 
 wait $child
-
-echo "done"
