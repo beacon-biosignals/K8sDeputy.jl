@@ -27,10 +27,10 @@ logger()
     fi
 }
 
-# https://github.com/beacon-biosignals/K8sDeputy.jl/blob/ff1548eba0eb84f463971fafc4839694df004cba/src/graceful_termination.jl#L14
+# https://github.com/beacon-biosignals/K8sDeputy.jl/blob/b62e1858a4083ffc8f9f7b10fcb60a77896ae13e/src/graceful_termination.jl#L14
 IPC_DIR="${DEPUTY_IPC_DIR:-/run}"
 
-# https://github.com/beacon-biosignals/K8sDeputy.jl/blob/ff1548eba0eb84f463971fafc4839694df004cba/src/graceful_termination.jl#L21-L29
+# https://github.com/beacon-biosignals/K8sDeputy.jl/blob/b62e1858a4083ffc8f9f7b10fcb60a77896ae13e/src/graceful_termination.jl#L21-L29
 get_pid()
 {
     PID_FILE="${DEPUTY_IPC_DIR}/julia-entrypoint.pid"
@@ -52,7 +52,7 @@ get_pid()
     echo "supervised process has PID $SUPERVISED_PID" | logger debug
 }
 
-# https://github.com/beacon-biosignals/K8sDeputy.jl/blob/ff1548eba0eb84f463971fafc4839694df004cba/src/graceful_termination.jl#L16-L19
+# https://github.com/beacon-biosignals/K8sDeputy.jl/blob/b62e1858a4083ffc8f9f7b10fcb60a77896ae13e/src/graceful_termination.jl#L16-L19
 get_socket()
 {
     SOCKET_PATH="${DEPUTY_IPC_DIR}/graceful-terminator.${SUPERVISED_PID}.socket"
@@ -75,7 +75,7 @@ terminate_supervised()
     # because this matches the behavior of `K8sDeputy.graceful_terminate`
     get_pid
     get_socket
-    # https://github.com/beacon-biosignals/K8sDeputy.jl/blob/ff1548eba0eb84f463971fafc4839694df004cba/src/graceful_termination.jl#L143-L144
+    # https://github.com/beacon-biosignals/K8sDeputy.jl/blob/b62e1858a4083ffc8f9f7b10fcb60a77896ae13e/src/graceful_termination.jl#L143-L144
     nc -U "$SOCKET_PATH" <<<"terminate"
     wait $child
     exit $?
