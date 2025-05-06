@@ -86,7 +86,7 @@ if [[ -z $JQ ]]; then
     echo "logging works best with jq" | logger warn
 fi
 
-if ! command -v nc; then
+if ! command -v nc >/dev/null; then
     echo "supervise.sh requires netcat (nc)" | logger error
     exit 1
 fi
