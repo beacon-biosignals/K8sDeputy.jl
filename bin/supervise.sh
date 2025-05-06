@@ -52,6 +52,11 @@ terminate_supervised()
     exit $?
 }
 
+if ! command -v nc; then
+    echo "supervise.sh requires netcat (nc)" >&2
+    exit 1
+fi
+
 # start background process
 "$@" &
 child=$!
