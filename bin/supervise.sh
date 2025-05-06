@@ -27,11 +27,6 @@ logger()
     fi
 }
 
-JQ=$(command -v jq)
-if [[ -z $JQ ]]; then
-    echo "logging works best with jq" | logger warn
-fi
-
 # https://github.com/beacon-biosignals/K8sDeputy.jl/blob/ff1548eba0eb84f463971fafc4839694df004cba/src/graceful_termination.jl#L14
 IPC_DIR="${DEPUTY_IPC_DIR:-/run}"
 
@@ -85,6 +80,11 @@ terminate_supervised()
     wait $child
     exit $?
 }
+
+JQ=$(command -v jq)
+if [[ -z $JQ ]]; then
+    echo "logging works best with jq" | logger warn
+fi
 
 if ! command -v nc; then
     echo "supervise.sh requires netcat (nc)" | logger error
