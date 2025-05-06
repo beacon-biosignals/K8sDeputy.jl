@@ -64,6 +64,34 @@ container hook. Typically, K8s initiates graceful termination via the `TERM` sig
 as Julia forcefully terminates when receiving this signal and Julia does not support
 user-defined signal handlers we utilize `preStop` instead.
 
+### Using superviser entrypoint
+
+K8sDeputy provides a bash script in bin/superviser.sh which handles the `TERM` signal and
+sends the `"terminate"` message to the graceful termination socket.  This can be used as the
+`ENTRYPOINT` for your docker image after installation as follows (assuming an Ubuntu/Debian
+base image):
+
+```dockerfile
+# Copy Project/Manifest and instantiate to install K8sDeputy and other dependencies...
+
+# Install K8sDeputy termination shim and dependencies (netcat and jq)
+RUN apt-get update && \
+    apt-get install --no-install-recommends -y netcat-openbsd jq && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/* && \
+    julia --color=yes -e 'using K8sDeputy; K8sDeputy.install_supervise_shim("/usr/bin")'
+
+ENTRYPOINT ["/usr/bin/supervise.sh"]
+```
+
+The command/script to run and any arguments it requires should be passed in via `args` in
+your [k8s Container
+spec](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#container-v1-core);
+anything you specify for `command` in the Container spec will _override_ the container's
+entrypoint.
+
+### Using pre-stop hook
+
 The following K8s pod manifest snippet will specify K8s to call the user-defined function
 specified by the `graceful_terminator`:
 
