@@ -208,7 +208,7 @@ function install_supervise_shim(shims_root::AbstractString; use_symlink=false)
     mkpath(shims_root)
     dest = joinpath(shims_root, "supervise.sh")
 
-    @info "$(use_simlink ? "Linking" : "Copying") $src -> $dest"
+    @info "$(use_symlink ? "Linking" : "Copying") $src -> $dest"
 
     return if use_symlink
         symlink(src, dest)
