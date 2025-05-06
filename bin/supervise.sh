@@ -7,6 +7,8 @@ logger()
         jq --raw-input --raw-output --compact-output \
            --arg status "$level" \
            '{
+                # theres no jq way I can find to format timestamp w/ subsecond precision
+                # so here we are, rolling our own!
                 timestamp: now |
                            {
                                # just the date-time stamp w/o Z
@@ -46,11 +48,13 @@ get_pid()
         echo "Failed to find PID file at $PID_FILE" | logger error
         exit 1
     fi
+    echo "reading PID from $PID_FILE" | logger debug
     read -r SUPERVISED_PID <"${DEPUTY_IPC_DIR}/julia-entrypoint.pid"
     if [[ ! $SUPERVISED_PID =~ ^[0-9]+$ ]]; then
         echo "PID file $PID_FILE does not contain a numeric PID: $SUPERVISED_PID" | logger error
         exit 1
     fi
+    echo "supervised process has PID $SUPERVISED_PID" | logger debug
 }
 
 # https://github.com/beacon-biosignals/K8sDeputy.jl/blob/ff1548eba0eb84f463971fafc4839694df004cba/src/graceful_termination.jl#L16-L19
@@ -66,16 +70,16 @@ get_socket()
         echo "Expected socket at $SOCKET_PATH; got something else. $SUPERVISED_PID may be a zombie now" | logger error
         exit 1
     fi
-    echo "using socket at $SOCKET_PATH" | logger
+    echo "using socket at $SOCKET_PATH" | logger debug
 }
 
 terminate_supervised()
 {
+    echo "TERM trapped, stopping" | logger
     # we parse these at termination time because they may not be ready at startup, and
     # because this matches the behavior of `K8sDeputy.graceful_terminate`
     get_pid
     get_socket
-    echo "Gently terminating $SUPERVISED_PID" | logger
     # https://github.com/beacon-biosignals/K8sDeputy.jl/blob/ff1548eba0eb84f463971fafc4839694df004cba/src/graceful_termination.jl#L143-L144
     nc -U "$SOCKET_PATH" <<<"terminate"
     wait $child
