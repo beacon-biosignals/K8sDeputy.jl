@@ -82,8 +82,9 @@ terminate_supervised()
     echo "TERM trapped, stopping" | logger
     # we parse these at termination time because they may not be ready at startup, and
     # because this matches the behavior of `K8sDeputy.graceful_terminate`
-    local PID="$(get_pid)"
-    local SOCKET_PATH="$(get_socket $PID)"
+    local PID, SOCKET_PATH
+    PID="$(get_pid)"
+    SOCKET_PATH="$(get_socket "$PID")"
     if [[ -S $SOCKET_PATH ]]; then
         # https://github.com/beacon-biosignals/K8sDeputy.jl/blob/b62e1858a4083ffc8f9f7b10fcb60a77896ae13e/src/graceful_termination.jl#L143-L144
         nc -U "$SOCKET_PATH" <<<"terminate"
