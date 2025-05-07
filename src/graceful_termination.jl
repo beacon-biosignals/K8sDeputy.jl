@@ -68,19 +68,11 @@ user-defined signal handlers we utilize `preStop` instead.
 
 K8sDeputy provides a bash script in bin/superviser.sh which handles the `TERM` signal and
 sends the `"terminate"` message to the graceful termination socket.  This can be used as the
-`ENTRYPOINT` for your docker image after installation as follows (assuming an Ubuntu/Debian
-base image):
+`ENTRYPOINT` for your docker image.  For example, after installing `K8sDeputy` in the active
+Julia project:
 
 ```dockerfile
-# Copy Project/Manifest and instantiate to install K8sDeputy and other dependencies...
-
-# Install K8sDeputy termination shim and dependencies (netcat and jq)
-RUN apt-get update && \
-    apt-get install --no-install-recommends -y netcat-openbsd jq && \
-    apt-get clean && \
-    rm -rf /var/lib/apt/lists/* && \
-    julia --color=yes -e 'using K8sDeputy; K8sDeputy.install_supervise_shim("/usr/bin")'
-
+RUN julia --color=yes -e 'using K8sDeputy; K8sDeputy.install_supervise_shim("/usr/bin")'
 ENTRYPOINT ["/usr/bin/supervise.sh"]
 ```
 
@@ -89,6 +81,14 @@ your [K8s Container
 spec](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#container-v1-core);
 anything you specify for `command` in the Container spec will _override_ the container's
 entrypoint.
+
+!!! note
+    The entrypoint script requires `netcat`, which is not present in e.g. `debian-slim`
+    images.  In particular, it requires the "OpenBSD" flavor (available as `netcat-openbsd`
+    in `apt`).  The script will fail before starting if `command -v nc` fails.
+
+    It also uses `jq` to generate JSON-formatted log messages with timestamps.  This is not
+    _required_ (it uses a more fragile fallback) but strongly recommended.
 
 ### Using pre-stop hook
 
