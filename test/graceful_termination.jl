@@ -136,3 +136,50 @@
         @test output == expected
     end
 end
+
+@testset "supervise.sh shim" begin
+    shim_dest = mktempdir()
+    @test_logs (:info,) K8sDeputy.install_supervise_shim(shim_dest)
+    @test isfile(joinpath(shim_dest, "supervise.sh"))
+    @test read(joinpath(shim_dest, "supervise.sh")) ==
+          read(joinpath(pkgdir(K8sDeputy), "bin", "supervise.sh"))
+
+    deputy_ipc_dir = mktempdir()
+    shim_path = shim_dest * ":" * ENV["PATH"]
+
+    @testset "script runs" begin
+        cmd = `supervise.sh`
+        cmd = addenv(cmd, "PATH" => shim_path, "DEPUTY_IPC_DIR" => deputy_ipc_dir)
+        buffer = IOBuffer()
+        p = run(pipeline(cmd, stdout=buffer, stderr=buffer))
+        @test timedwait(() -> process_exited(p), Second(5)) === :ok
+        @test p.exitcode == 0
+    end
+
+    @testset "handles SIGTERM" begin
+        code = quote
+            using K8sDeputy
+            atexit(() -> @info "SHUTDOWN COMPLETE")
+            graceful_terminator() do
+                @info "GRACEFUL TERMINATION HANDLER"
+                exit(2)
+                return nothing
+            end
+            sleep(60)
+        end
+        cmd = `supervise.sh $(Base.julia_cmd()) --color=no -e $code`
+        cmd = addenv(cmd, "PATH" => shim_path, "DEPUTY_IPC_DIR" => deputy_ipc_dir)
+        buffer = IOBuffer()
+        p = run(pipeline(cmd, stdout=buffer, stderr=buffer); wait=false)
+        @test timedwait(() -> process_running(p), Second(5)) === :ok
+        kill(p, Base.SIGTERM)
+        @test timedwait(() -> process_exited(p), Second(10)) === :ok
+
+        output = String(take!(buffer))
+        expected = """
+            [ Info: GRACEFUL TERMINATION HANDLER
+            [ Info: SHUTDOWN COMPLETE
+            """
+        @test contains(output, expected)
+    end
+end
