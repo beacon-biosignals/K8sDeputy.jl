@@ -14,8 +14,8 @@ logger()
                            {
                                # just the date-time stamp w/o Z
                                datetime: . | strftime("%Y-%m-%dT%H:%M:%S"),
-                               # ms part of fractional seconds
-                               ms: (. | modf | .[0] * 1000 | trunc)
+                               # ms part of fractional seconds w/o leading 0.
+                               ms: . | modf | .[0] | "\(.)" | .[2:5]
                            } |
                            "\(.datetime).\(.ms)Z",
                 status: $status,
@@ -87,7 +87,9 @@ terminate_supervised()
     # https://github.com/beacon-biosignals/K8sDeputy.jl/blob/b62e1858a4083ffc8f9f7b10fcb60a77896ae13e/src/graceful_termination.jl#L143-L144
     nc -U "$SOCKET_PATH" <<<"terminate"
     wait $child
-    exit $?
+    local status=$?
+    echo "PID $child completed with status $?" | logger debug
+    exit $status
 }
 
 JQ=$(command -v jq)
@@ -99,6 +101,8 @@ if ! command -v nc >/dev/null; then
     echo "supervise.sh requires netcat (nc)" | logger error
     exit 1
 fi
+
+echo "startup.sh shim running from $0" | logger debug
 
 # start background process
 "$@" &
