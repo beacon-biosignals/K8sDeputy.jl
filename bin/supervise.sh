@@ -61,16 +61,16 @@ get_pid()
 get_socket()
 {
     local SUPERVISED_PID=${1}
+    # this is already logged in get_pid()
+    if [[ -z $SUPERVISED_PID ]]; then
+        exit 1
+    fi
     local SOCKET_PATH="${IPC_DIR}/graceful-terminator.${SUPERVISED_PID}.socket"
     # TODO: timeout.  not likely to be critical since we don't call this unitl termination
     # is requested
     # until [ -e "$SOCKET_PATH" ]; do
     #     sleep 0.1
     # done
-    if [[ ! -S $SOCKET_PATH ]]; then
-        echo "Expected socket at $SOCKET_PATH; got something else. $SUPERVISED_PID may be a zombie now" | logger error
-        exit 1
-    fi
     echo "using socket at $SOCKET_PATH" | logger debug
 
     # output
@@ -84,8 +84,13 @@ terminate_supervised()
     # because this matches the behavior of `K8sDeputy.graceful_terminate`
     local PID="$(get_pid)"
     local SOCKET_PATH="$(get_socket $PID)"
-    # https://github.com/beacon-biosignals/K8sDeputy.jl/blob/b62e1858a4083ffc8f9f7b10fcb60a77896ae13e/src/graceful_termination.jl#L143-L144
-    nc -U "$SOCKET_PATH" <<<"terminate"
+    if [[ -S $SOCKET_PATH ]]; then
+        # https://github.com/beacon-biosignals/K8sDeputy.jl/blob/b62e1858a4083ffc8f9f7b10fcb60a77896ae13e/src/graceful_termination.jl#L143-L144
+        nc -U "$SOCKET_PATH" <<<"terminate"
+    else
+        echo "Expected socket at $SOCKET_PATH; got something else. $PID may be a zombie now. sending SIGTERM to $child instead" | logger warn
+        kill -TERM $child
+    fi
     wait $child
     local status=$?
     echo "PID $child completed with status $?" | logger debug
