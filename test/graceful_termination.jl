@@ -171,7 +171,12 @@ end
         cmd = addenv(cmd, "PATH" => shim_path, "DEPUTY_IPC_DIR" => deputy_ipc_dir)
         buffer = IOBuffer()
         p = run(pipeline(cmd, stdout=buffer, stderr=buffer); wait=false)
+
         @test timedwait(() -> process_running(p), Second(5)) === :ok
+
+        # Allow some time for Julia to startup and the graceful terminator to be registered.
+        sleep(3)
+
         kill(p, Base.SIGTERM)
         @test timedwait(() -> process_exited(p), Second(10)) === :ok
 
