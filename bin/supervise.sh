@@ -2,7 +2,7 @@
 
 logger()
 {
-    level=${1:-info}
+    local level=${1:-info}
     if [[ -n $JQ ]]; then
         jq --raw-input --raw-output --compact-output \
            --arg status "$level" \
@@ -19,11 +19,11 @@ logger()
                            "\(.datetime)\(.ms)Z",
                 status: $status,
                 message: .
-            }'
+            }' >&2
     else
         # provide a _very_ minimal fallback here
         read -r message
-        echo "{\"status\":\"$level\",\"message\":\"$message\"}"
+        echo "{\"status\":\"$level\",\"message\":\"$message\"}" >&2
     fi
 }
 
@@ -33,7 +33,7 @@ IPC_DIR="${DEPUTY_IPC_DIR:-/run}"
 # https://github.com/beacon-biosignals/K8sDeputy.jl/blob/b62e1858a4083ffc8f9f7b10fcb60a77896ae13e/src/graceful_termination.jl#L21-L29
 get_pid()
 {
-    PID_FILE="${IPC_DIR}/julia-entrypoint.pid"
+    local PID_FILE="${IPC_DIR}/julia-entrypoint.pid"
     # TODO: timeout.  not likely to be critical since we don't call this unitl termination
     # is requested
     # until [ -f "${PID_FILE}" ]; do
@@ -44,18 +44,23 @@ get_pid()
         exit 1
     fi
     echo "reading PID from $PID_FILE" | logger debug
+    local SUPERVISED_PID
     read -r SUPERVISED_PID <"${IPC_DIR}/julia-entrypoint.pid"
     if [[ ! $SUPERVISED_PID =~ ^[0-9]+$ ]]; then
         echo "PID file $PID_FILE does not contain a numeric PID: $SUPERVISED_PID" | logger error
         exit 1
     fi
     echo "supervised process has PID $SUPERVISED_PID" | logger debug
+
+    # output
+    echo "$SUPERVISED_PID"
 }
 
 # https://github.com/beacon-biosignals/K8sDeputy.jl/blob/b62e1858a4083ffc8f9f7b10fcb60a77896ae13e/src/graceful_termination.jl#L16-L19
 get_socket()
 {
-    SOCKET_PATH="${IPC_DIR}/graceful-terminator.${SUPERVISED_PID}.socket"
+    local SUPERVISED_PID=${1}
+    local SOCKET_PATH="${IPC_DIR}/graceful-terminator.${SUPERVISED_PID}.socket"
     # TODO: timeout.  not likely to be critical since we don't call this unitl termination
     # is requested
     # until [ -e "$SOCKET_PATH" ]; do
@@ -66,6 +71,9 @@ get_socket()
         exit 1
     fi
     echo "using socket at $SOCKET_PATH" | logger debug
+
+    # output
+    echo "$SOCKET_PATH"
 }
 
 terminate_supervised()
@@ -73,8 +81,8 @@ terminate_supervised()
     echo "TERM trapped, stopping" | logger
     # we parse these at termination time because they may not be ready at startup, and
     # because this matches the behavior of `K8sDeputy.graceful_terminate`
-    get_pid
-    get_socket
+    local PID="$(get_pid)"
+    local SOCKET_PATH="$(get_socket $PID)"
     # https://github.com/beacon-biosignals/K8sDeputy.jl/blob/b62e1858a4083ffc8f9f7b10fcb60a77896ae13e/src/graceful_termination.jl#L143-L144
     nc -U "$SOCKET_PATH" <<<"terminate"
     wait $child
