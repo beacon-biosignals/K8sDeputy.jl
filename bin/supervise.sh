@@ -1,5 +1,6 @@
 #!/bin/bash
 
+# generate structured JSON logs with `timestamp`, `status`, and `message` fields.
 logger()
 {
     local level=${1:-info}
@@ -13,10 +14,10 @@ logger()
                            {
                                # just the date-time stamp w/o Z
                                datetime: . | strftime("%Y-%m-%dT%H:%M:%S"),
-                               # ms part of fractional seconds w/o leading 0
-                               ms: . | modf | .[0] | "\(.)" | .[1:5]
+                               # ms part of fractional seconds
+                               ms: (. | modf | .[0] * 1000 | trunc)
                            } |
-                           "\(.datetime)\(.ms)Z",
+                           "\(.datetime).\(.ms)Z",
                 status: $status,
                 message: .
             }' >&2
