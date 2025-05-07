@@ -35,7 +35,7 @@ jobs:
       fail-fast: false
       matrix:
         version:
-          - "1.6"  # Earliest version of Julia that the package is compatible with
+          - "1.10"  # Earliest version of Julia that the package is compatible with
           - "1"    # Latest Julia release
         runs-on:
           - ubuntu-latest
