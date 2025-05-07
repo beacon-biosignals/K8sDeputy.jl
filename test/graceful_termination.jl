@@ -139,10 +139,9 @@ end
 
 @testset "supervise.sh shim" begin
     shim_dest = mktempdir()
-    @test_logs (:info,) K8sDeputy.install_supervise_shim(shim_dest)
-    @test isfile(joinpath(shim_dest, "supervise.sh"))
-    @test read(joinpath(shim_dest, "supervise.sh")) ==
-          read(joinpath(pkgdir(K8sDeputy), "bin", "supervise.sh"))
+    shim_installed = @test_logs (:info,) K8sDeputy.install_supervise_shim(shim_dest)
+    @test islink(shim_installed)
+    @test read(shim_installed) == read(joinpath(pkgdir(K8sDeputy), "bin", "supervise.sh"))
 
     deputy_ipc_dir = mktempdir()
     shim_path = shim_dest * ":" * ENV["PATH"]

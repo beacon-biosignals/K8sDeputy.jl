@@ -201,18 +201,15 @@ function graceful_terminate(pid::Int32=entrypoint_pid(); wait::Bool=true)
     return nothing
 end
 
-function install_supervise_shim(shims_root::AbstractString; use_symlink=false)
+function install_supervise_shim(shims_root::AbstractString)
     src = abspath(joinpath(@__DIR__, "..", "bin", "supervise.sh"))
     isfile(src) || error("supervise.sh shim not found at $src")
 
     mkpath(shims_root)
     dest = joinpath(shims_root, "supervise.sh")
 
-    @info "$(use_symlink ? "Linking" : "Copying") $src -> $dest"
+    @info "Linking $src -> $dest"
+    symlink(src, dest)
 
-    return if use_symlink
-        symlink(src, dest)
-    else
-        cp(src, dest)
-    end
+    return dest
 end
