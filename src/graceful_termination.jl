@@ -85,7 +85,7 @@ ENTRYPOINT ["/usr/bin/supervise.sh"]
 ```
 
 The command/script to run and any arguments it requires should be passed in via `args` in
-your [k8s Container
+your [K8s Container
 spec](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#container-v1-core);
 anything you specify for `command` in the Container spec will _override_ the container's
 entrypoint.
