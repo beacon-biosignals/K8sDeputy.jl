@@ -101,6 +101,13 @@ fi
 
 # start background process
 "$@" &
+
+# NOTE: the PID of the actual Julia application that creates the socket that K8sDeputy
+# listens for termination on may not be the same as the PID of the immediate child process
+# here, if the command passed to this script is another shim (like with `juliaup`) or
+# otherwise launches Julia as a subprocess.
+#
+# Nevertheless we still want to _wait_ on this child.
 child=$!
 
 trap "terminate_supervised" TERM
