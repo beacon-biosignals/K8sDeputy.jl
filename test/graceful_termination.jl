@@ -239,10 +239,15 @@ end
         kill(p, Base.SIGINT)
         @test timedwait(() -> process_exited(p), Second(10)) === :ok
 
-        # what should this be?  no idea.
-        @test p.exitcode != 0
+        # Because supervise.sh attempts graceful termination at exit...
+        @test p.exitcode == 2
 
+        expected = """
+            [ Info: GRACEFUL TERMINATION HANDLER
+            [ Info: SHUTDOWN COMPLETE
+            """
         output = String(take!(buffer))
+        @test contains(output, expected)
         println(output)
     end
 end
