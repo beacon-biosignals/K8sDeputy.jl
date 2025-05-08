@@ -92,9 +92,9 @@ terminate_supervised()
         kill -TERM $child
     fi
     wait $child
-    local status=$?
-    echo "PID $child completed with status $?" | logger debug
-    exit $status
+    # local status=$?
+    # echo "PID $child completed with status $?" | logger debug
+    # exit $status
 }
 
 # this will run regardless
