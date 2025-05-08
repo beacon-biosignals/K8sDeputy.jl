@@ -187,6 +187,32 @@ end
             [ Info: SHUTDOWN COMPLETE
             """
         @test contains(output, expected)
+        println(output)
+    end
+
+    @testset "graceless termination" begin
+        code = quote
+            sleep(60)
+        end
+        cmd = `supervise.sh $(Base.julia_cmd()) --color=no -e $code`
+        cmd = addenv(cmd, "PATH" => shim_path, "DEPUTY_IPC_DIR" => deputy_ipc_dir)
+        buffer = IOBuffer()
+        p = run(pipeline(cmd, stdout=buffer, stderr=buffer); wait=false)
+
+        @test timedwait(() -> process_running(p), Second(5)) === :ok
+
+        # Allow some time for Julia to startup and the graceful terminator to be registered.
+        sleep(3)
+
+        kill(p, Base.SIGINT)
+        @test timedwait(() -> process_exited(p), Second(10)) === :ok
+        # SIGTERM=15 gets sent to badly behaving children
+        @test p.exitcode == 15 + 128
+
+        output = String(take!(buffer))
+        expected = r"Child [0-9]+ still running at exit, cleaning up"
+        @test contains(output, expected)
+        println(output)
     end
 
     @testset "handles SIGINT" begin
@@ -217,6 +243,6 @@ end
         @test p.exitcode != 0
 
         output = String(take!(buffer))
-        @info output
+        println(output)
     end
 end
