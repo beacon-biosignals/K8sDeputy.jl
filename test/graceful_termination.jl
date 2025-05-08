@@ -150,7 +150,7 @@ end
         cmd = `supervise.sh`
         cmd = addenv(cmd, "PATH" => shim_path, "DEPUTY_IPC_DIR" => deputy_ipc_dir)
         buffer = IOBuffer()
-        p = run(pipeline(cmd, stdout=buffer, stderr=buffer))
+        p = run(pipeline(cmd; stdout=buffer, stderr=buffer))
         @test timedwait(() -> process_exited(p), Second(5)) === :ok
         @test p.exitcode == 0
     end
@@ -169,7 +169,7 @@ end
         cmd = `supervise.sh $(Base.julia_cmd()) --color=no -e $code`
         cmd = addenv(cmd, "PATH" => shim_path, "DEPUTY_IPC_DIR" => deputy_ipc_dir)
         buffer = IOBuffer()
-        p = run(pipeline(cmd, stdout=buffer, stderr=buffer); wait=false)
+        p = run(pipeline(cmd; stdout=buffer, stderr=buffer); wait=false)
 
         @test timedwait(() -> process_running(p), Second(5)) === :ok
 
@@ -197,7 +197,7 @@ end
         cmd = `supervise.sh $(Base.julia_cmd()) --color=no -e $code`
         cmd = addenv(cmd, "PATH" => shim_path, "DEPUTY_IPC_DIR" => deputy_ipc_dir)
         buffer = IOBuffer()
-        p = run(pipeline(cmd, stdout=buffer, stderr=buffer); wait=false)
+        p = run(pipeline(cmd; stdout=buffer, stderr=buffer); wait=false)
 
         @test timedwait(() -> process_running(p), Second(5)) === :ok
 
@@ -229,7 +229,7 @@ end
         cmd = `supervise.sh $(Base.julia_cmd()) --color=no -e $code`
         cmd = addenv(cmd, "PATH" => shim_path, "DEPUTY_IPC_DIR" => deputy_ipc_dir)
         buffer = IOBuffer()
-        p = run(pipeline(cmd, stdout=buffer, stderr=buffer); wait=false)
+        p = run(pipeline(cmd; stdout=buffer, stderr=buffer); wait=false)
 
         @test timedwait(() -> process_running(p), Second(5)) === :ok
 
