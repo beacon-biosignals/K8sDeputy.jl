@@ -106,6 +106,9 @@ cleanup_at_exit()
         terminate_supervised
     fi
     wait $child
+    local status=$?
+    echo "PID $child completed with status $?" | logger debug
+    exit $status
 }
 
 JQ=$(command -v jq)
