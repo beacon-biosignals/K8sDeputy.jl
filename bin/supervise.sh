@@ -79,11 +79,14 @@ get_socket()
 
 terminate_supervised()
 {
+    echo "TERM trapped, stopping" | logger
+
     # we parse these at termination time because they may not be ready at startup, and
     # because this matches the behavior of `K8sDeputy.graceful_terminate`
     local PID SOCKET_PATH
     PID="$(get_pid)"
     SOCKET_PATH="$(get_socket "$PID")"
+
     if [[ -S $SOCKET_PATH ]]; then
         # https://github.com/beacon-biosignals/K8sDeputy.jl/blob/b62e1858a4083ffc8f9f7b10fcb60a77896ae13e/src/graceful_termination.jl#L143-L144
         nc -U "$SOCKET_PATH" <<<"terminate"
@@ -91,23 +94,11 @@ terminate_supervised()
         echo "Expected socket at $SOCKET_PATH; got something else. $PID may be a zombie now. sending SIGTERM to $child instead" | logger warn
         kill -TERM $child
     fi
-    wait $child
-    # local status=$?
-    # echo "PID $child completed with status $?" | logger debug
-    # exit $status
-}
 
-# this will run regardless
-cleanup_at_exit()
-{
-    if kill -0 $child 2>/dev/null; then
-        echo "Child $child still running at exit, cleaning up" | logger warn
-        # _try_ to gracefully terminate; if we can't, $child gets kill -TERM
-        terminate_supervised
-    fi
-    wait $child
+    wait -n $child
+
     local status=$?
-    echo "PID $child completed with status $?" | logger debug
+    echo "PID $child completed with status $status" | logger debug
     exit $status
 }
 
@@ -134,7 +125,6 @@ echo "startup.sh shim running from $0" | logger debug
 # Nevertheless we still want to _wait_ on this child.
 child=$!
 
-trap 'echo "TERM trapped, stopping" | logger; terminate_supervised' TERM
-trap 'cleanup_at_exit' EXIT
+trap 'terminate_supervised' TERM INT
 
-wait $child
+wait -n $child

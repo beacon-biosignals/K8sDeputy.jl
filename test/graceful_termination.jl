@@ -155,7 +155,7 @@ end
         @test p.exitcode == 0
     end
 
-    @testset "handles SIGTERM" begin
+    @testset "handles $signal" for signal in (Base.SIGTERM, Base.SIGINT)
         code = quote
             using K8sDeputy
             atexit(() -> @info "SHUTDOWN COMPLETE")
@@ -176,7 +176,7 @@ end
         # Allow some time for Julia to startup and the graceful terminator to be registered.
         sleep(3)
 
-        kill(p, Base.SIGTERM)
+        kill(p, signal)
         @test timedwait(() -> process_exited(p), Second(10)) === :ok
         # we exit(2) in the julia code above
         @test p.exitcode == 2
@@ -204,50 +204,14 @@ end
         # Allow some time for Julia to startup and the graceful terminator to be registered.
         sleep(3)
 
-        kill(p, Base.SIGINT)
+        kill(p, Base.SIGTERM)
         @test timedwait(() -> process_exited(p), Second(10)) === :ok
         # SIGTERM=15 gets sent to badly behaving children
         @test p.exitcode == 15 + 128
 
         output = String(take!(buffer))
-        expected = r"Child [0-9]+ still running at exit, cleaning up"
+        expected = r"sending SIGTERM to [0-9]+ instead"
         @test contains(output, expected)
-        println(output)
-    end
-
-    @testset "handles SIGINT" begin
-        code = quote
-            using K8sDeputy
-            atexit(() -> @info "SHUTDOWN COMPLETE")
-            graceful_terminator() do
-                @info "GRACEFUL TERMINATION HANDLER"
-                exit(2)
-                return nothing
-            end
-            sleep(60)
-        end
-        cmd = `supervise.sh $(Base.julia_cmd()) --color=no -e $code`
-        cmd = addenv(cmd, "PATH" => shim_path, "DEPUTY_IPC_DIR" => deputy_ipc_dir)
-        buffer = IOBuffer()
-        p = run(pipeline(cmd; stdout=buffer, stderr=buffer); wait=false)
-
-        @test timedwait(() -> process_running(p), Second(5)) === :ok
-
-        # Allow some time for Julia to startup and the graceful terminator to be registered.
-        sleep(3)
-
-        kill(p, Base.SIGINT)
-        @test timedwait(() -> process_exited(p), Second(10)) === :ok
-
-        # Because supervise.sh attempts graceful termination at exit...
-        @test p.exitcode == 2
-
-        expected = """
-            [ Info: GRACEFUL TERMINATION HANDLER
-            [ Info: SHUTDOWN COMPLETE
-            """
-        output = String(take!(buffer))
-        @test contains(output, expected)
-        println(output)
+        println(join(["--", output, "--"], '\n'))
     end
 end
