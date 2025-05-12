@@ -155,7 +155,7 @@ end
         @test p.exitcode == 0
     end
 
-    @testset "handles $signal" for signal in (Base.SIGTERM, Base.SIGINT)
+    @testset "handles SIGTERM" begin
         code = quote
             using K8sDeputy
             atexit(() -> @info "SHUTDOWN COMPLETE")
@@ -176,7 +176,7 @@ end
         # Allow some time for Julia to startup and the graceful terminator to be registered.
         sleep(3)
 
-        kill(p, signal)
+        kill(p, Base.SIGTERM)
         @test timedwait(() -> process_exited(p), Second(10)) === :ok
         # we exit(2) in the julia code above
         @test p.exitcode == 2

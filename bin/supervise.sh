@@ -125,6 +125,6 @@ echo "startup.sh shim running from $0" | logger debug
 # Nevertheless we still want to _wait_ on this child.
 child=$!
 
-trap 'terminate_supervised' TERM INT
+trap 'terminate_supervised' TERM
 
 wait -n $child
