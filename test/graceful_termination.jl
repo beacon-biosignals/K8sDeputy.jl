@@ -194,7 +194,7 @@ end
         code = quote
             sleep(60)
         end
-        cmd = `supervise.sh $(Base.julia_cmd()) --color=no -e $code`
+        cmd = `supervise.sh $(Base.julia_cmd()) --color=no --handle-signals=yes -e $code`
         cmd = addenv(cmd, "PATH" => shim_path, "DEPUTY_IPC_DIR" => deputy_ipc_dir)
         buffer = IOBuffer()
         p = run(pipeline(cmd; stdout=buffer, stderr=buffer); wait=false)

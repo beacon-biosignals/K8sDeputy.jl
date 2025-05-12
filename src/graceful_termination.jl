@@ -7,8 +7,8 @@
 # from experimenting with this there are a few issues such as being unable to use locks or
 # printing (`jl_safe_printf` does work).
 
-# NOTE: if you update any paths, filenames, or the messages expected in the socket, you must
-# also update /bin/supervise.sh to match.
+# NOTE: If you update any paths, filenames, or the messages expected in the socket, you must
+# also update `bin/supervise.sh` to match.
 
 # Linux stores PID files and UNIX-domain sockets in `/run`. Users with K8s containers
 # utilizing read-only file systems should make use of a volume mount to allow K8sDeputy.jl
@@ -64,11 +64,11 @@ container hook. Typically, K8s initiates graceful termination via the `TERM` sig
 as Julia forcefully terminates when receiving this signal and Julia does not support
 user-defined signal handlers we utilize `preStop` instead.
 
-### Using superviser entrypoint
+### Using the supervise entrypoint
 
-K8sDeputy provides a bash script in bin/superviser.sh which handles the `TERM` signal and
+K8sDeputy provides a bash script in `bin/superviser.sh` which handles the `TERM` signal and
 sends the `"terminate"` message to the graceful termination socket.  This can be used as the
-`ENTRYPOINT` for your docker image.  For example, after installing `K8sDeputy` in the active
+`ENTRYPOINT` for your Docker image.  For example, after installing `K8sDeputy` in the active
 Julia project:
 
 ```dockerfile
@@ -85,12 +85,12 @@ entrypoint.
 !!! note
     The entrypoint script requires `netcat`, which is not present in e.g. `debian-slim`
     images.  In particular, it requires the "OpenBSD" flavor (available as `netcat-openbsd`
-    in `apt`).  The script will fail before starting if `command -v nc` fails.
+    via `apt-get`).  The script will fail before starting if `command -v nc` fails.
 
     It also uses `jq` to generate JSON-formatted log messages with timestamps.  This is not
     _required_ (it uses a more fragile fallback) but strongly recommended.
 
-### Using pre-stop hook
+### Using the pre-stop hook
 
 The following K8s pod manifest snippet will specify K8s to call the user-defined function
 specified by the `graceful_terminator`:
