@@ -8,6 +8,8 @@ using Sockets: localhost
 using Test
 
 # https://en.wikipedia.org/wiki/Ephemeral_port
+#
+# lower bound is from macOS (and other BSD-based systems), upper bound from Linux
 const EPHEMERAL_PORT_RANGE = 49152:60999
 
 Mocking.activate()
