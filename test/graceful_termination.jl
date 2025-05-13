@@ -136,3 +136,82 @@
         @test output == expected
     end
 end
+
+@testset "supervise.sh shim" begin
+    shim_dest = mktempdir()
+    shim_installed = @test_logs (:info,) K8sDeputy.install_supervise_shim(shim_dest)
+    @test islink(shim_installed)
+    @test read(shim_installed) == read(joinpath(pkgdir(K8sDeputy), "bin", "supervise.sh"))
+
+    deputy_ipc_dir = mktempdir()
+    shim_path = shim_dest * ":" * ENV["PATH"]
+
+    @testset "script runs" begin
+        cmd = `supervise.sh`
+        cmd = addenv(cmd, "PATH" => shim_path, "DEPUTY_IPC_DIR" => deputy_ipc_dir)
+        buffer = IOBuffer()
+        p = run(pipeline(cmd; stdout=buffer, stderr=buffer))
+        @test timedwait(() -> process_exited(p), Second(5)) === :ok
+        @test p.exitcode == 0
+    end
+
+    @testset "handles $signal" for signal in (Base.SIGTERM, Base.SIGINT)
+        code = quote
+            using K8sDeputy
+            atexit(() -> @info "SHUTDOWN COMPLETE")
+            graceful_terminator() do
+                @info "GRACEFUL TERMINATION HANDLER"
+                exit(2)
+                return nothing
+            end
+            sleep(60)
+        end
+        cmd = `supervise.sh $(Base.julia_cmd()) --color=no -e $code`
+        cmd = addenv(cmd, "PATH" => shim_path, "DEPUTY_IPC_DIR" => deputy_ipc_dir)
+        buffer = IOBuffer()
+        p = run(pipeline(cmd; stdout=buffer, stderr=buffer); wait=false)
+
+        @test timedwait(() -> process_running(p), Second(5)) === :ok
+
+        # Allow some time for Julia to startup and the graceful terminator to be registered.
+        sleep(3)
+
+        kill(p, signal)
+        @test timedwait(() -> process_exited(p), Second(10)) === :ok
+        # we exit(2) in the julia code above
+        @test p.exitcode == 2
+
+        output = String(take!(buffer))
+        expected = """
+            [ Info: GRACEFUL TERMINATION HANDLER
+            [ Info: SHUTDOWN COMPLETE
+            """
+        @test contains(output, expected)
+        println(output)
+    end
+
+    @testset "graceless termination" begin
+        code = quote
+            sleep(60)
+        end
+        cmd = `supervise.sh $(Base.julia_cmd()) --color=no --handle-signals=yes -e $code`
+        cmd = addenv(cmd, "PATH" => shim_path, "DEPUTY_IPC_DIR" => deputy_ipc_dir)
+        buffer = IOBuffer()
+        p = run(pipeline(cmd; stdout=buffer, stderr=buffer); wait=false)
+
+        @test timedwait(() -> process_running(p), Second(5)) === :ok
+
+        # Allow some time for Julia to startup and the graceful terminator to be registered.
+        sleep(3)
+
+        kill(p, Base.SIGTERM)
+        @test timedwait(() -> process_exited(p), Second(10)) === :ok
+        # SIGTERM=15 gets sent to badly behaving children
+        @test p.exitcode == 15 + 128
+
+        output = String(take!(buffer))
+        expected = r"sending SIGTERM to [0-9]+ instead"
+        @test contains(output, expected)
+        println(join(["--", output, "--"], '\n'))
+    end
+end

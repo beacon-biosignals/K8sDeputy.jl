@@ -7,6 +7,9 @@
 # from experimenting with this there are a few issues such as being unable to use locks or
 # printing (`jl_safe_printf` does work).
 
+# NOTE: If you update any paths, filenames, or the messages expected in the socket, you must
+# also update `bin/supervise.sh` to match.
+
 # Linux stores PID files and UNIX-domain sockets in `/run`. Users with K8s containers
 # utilizing read-only file systems should make use of a volume mount to allow K8sDeputy.jl
 # to write to `/run`. Users can change the IPC directory by specifying `DEPUTY_IPC_DIR` but
@@ -60,6 +63,34 @@ of a Julia process by defining a pod [`preStop`](https://kubernetes.io/docs/conc
 container hook. Typically, K8s initiates graceful termination via the `TERM` signal but
 as Julia forcefully terminates when receiving this signal and Julia does not support
 user-defined signal handlers we utilize `preStop` instead.
+
+### Using the supervise entrypoint
+
+K8sDeputy provides a bash script in `bin/superviser.sh` which handles the `TERM` signal and
+sends the `"terminate"` message to the graceful termination socket.  This can be used as the
+`ENTRYPOINT` for your Docker image.  For example, after installing `K8sDeputy` in the active
+Julia project:
+
+```dockerfile
+RUN julia --color=yes -e 'using K8sDeputy; K8sDeputy.install_supervise_shim("/usr/bin")'
+ENTRYPOINT ["/usr/bin/supervise.sh"]
+```
+
+The command/script to run and any arguments it requires should be passed in via `args` in
+your [K8s Container
+spec](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#container-v1-core);
+anything you specify for `command` in the Container spec will _override_ the container's
+entrypoint.
+
+!!! note
+    The entrypoint script requires `netcat`, which is not present in e.g. `debian-slim`
+    images.  In particular, it requires the "OpenBSD" flavor (available as `netcat-openbsd`
+    via `apt-get`).  The script will fail before starting if `command -v nc` fails.
+
+    It also uses `jq` to generate JSON-formatted log messages with timestamps.  This is not
+    _required_ (it uses a more fragile fallback) but strongly recommended.
+
+### Using the pre-stop hook
 
 The following K8s pod manifest snippet will specify K8s to call the user-defined function
 specified by the `graceful_terminator`:
@@ -168,4 +199,17 @@ function graceful_terminate(pid::Int32=entrypoint_pid(); wait::Bool=true)
     end
 
     return nothing
+end
+
+function install_supervise_shim(shims_root::AbstractString)
+    src = abspath(joinpath(@__DIR__, "..", "bin", "supervise.sh"))
+    isfile(src) || error("supervise.sh shim not found at $src")
+
+    mkpath(shims_root)
+    dest = joinpath(shims_root, "supervise.sh")
+
+    @info "Linking $src -> $dest"
+    symlink(src, dest)
+
+    return dest
 end
