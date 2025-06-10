@@ -96,7 +96,7 @@ terminate_supervised()
         kill "-$signal" $child
     fi
 
-    wait $child
+    wait -n $child
 
     local status=$?
     echo "PID $child completed with status $status" | logger debug
@@ -129,4 +129,4 @@ child=$!
 trap 'terminate_supervised TERM' TERM
 trap 'terminate_supervised INT' INT
 
-wait $child
+wait -n $child
