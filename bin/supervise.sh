@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # generate structured JSON logs with `timestamp`, `status`, and `message` fields.
 logger()
@@ -96,7 +96,7 @@ terminate_supervised()
         kill "-$signal" $child
     fi
 
-    wait -n $child
+    wait $child
 
     local status=$?
     echo "PID $child completed with status $status" | logger debug
@@ -129,4 +129,4 @@ child=$!
 trap 'terminate_supervised TERM' TERM
 trap 'terminate_supervised INT' INT
 
-wait -n $child
+wait $child
