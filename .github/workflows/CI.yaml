@@ -10,12 +10,14 @@ on:
       - "src/**"
       - "test/**"
       - "Project.toml"
+      - "bin/supervise.sh"
       - ".github/workflows/CI.yaml"
   pull_request:
     paths:
       - "src/**"
       - "test/**"
       - "Project.toml"
+      - "bin/supervise.sh"
       - ".github/workflows/CI.yaml"
 concurrency:
   # Skip intermediate builds: always.
