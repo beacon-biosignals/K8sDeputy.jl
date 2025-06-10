@@ -113,6 +113,12 @@ if ! command -v nc >/dev/null; then
     exit 1
 fi
 
+required_bash_ver="3.2.0"
+if [[ "$(printf '%s\n' "${required_bash_ver}" "${BASH_VERSION}" | sort -V | head -n1)" != "${required_bash_ver}" ]]; then
+    echo "supervise.sh requires at least bash version ${required_bash_ver}" | logger error
+    exit 1
+fi
+
 echo "startup.sh shim running from $0" | logger debug
 
 # start background process
