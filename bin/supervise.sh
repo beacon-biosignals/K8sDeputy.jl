@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # generate structured JSON logs with `timestamp`, `status`, and `message` fields.
 logger()
