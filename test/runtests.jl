@@ -21,4 +21,5 @@ Mocking.activate()
 
     include("graceful_termination.jl")
     include("health.jl")
+    include("health_checks.jl")
 end

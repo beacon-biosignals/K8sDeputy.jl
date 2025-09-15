@@ -3,10 +3,14 @@ mutable struct Deputy
     shutting_down::Bool
     shutdown_handler::Any
     shutdown_handler_timeout::Second
+    custom_health_checks::Dict{String, HealthCheck}
+    health_checks_lock::ReentrantLock
+    check_timeout::Second
 end
 
 """
-    Deputy(; shutdown_handler=nothing, shutdown_handler_timeout::Period=Second(5))
+    Deputy(; shutdown_handler=nothing, shutdown_handler_timeout::Period=Second(5),
+           check_timeout::Period=Second(5))
 
 Construct an application `Deputy` which provides health check endpoints.
 
@@ -16,9 +20,13 @@ Construct an application `Deputy` which provides health check endpoints.
   a custom callback function for when `shutdown!(::Deputy)` is called.
 - `shutdown_handler_timeout::Period` (optional): Specifies the maximum execution duration of
   a `shutdown_handler`.
+- `check_timeout::Period` (optional): Specifies the maximum execution duration for each
+  custom health check. Defaults to 5 seconds.
 """
-function Deputy(; shutdown_handler=nothing, shutdown_handler_timeout::Period=Second(5))
-    return Deputy(false, false, shutdown_handler, shutdown_handler_timeout)
+function Deputy(; shutdown_handler=nothing, shutdown_handler_timeout::Period=Second(5),
+                check_timeout::Period=Second(5))
+    return Deputy(false, false, shutdown_handler, shutdown_handler_timeout,
+                  Dict{String, HealthCheck}(), ReentrantLock(), check_timeout)
 end
 
 """
@@ -80,10 +88,53 @@ end
 function liveness_endpoint(deputy::Deputy)
     return function (r::HTTP.Request)
         @debug "liveness probed"
-        return if !deputy.shutting_down
-            HTTP.Response(200)
+        
+        # Check for custom liveness checks
+        liveness_checks = lock(deputy.health_checks_lock) do
+            filter(deputy.custom_health_checks) do (name, check)
+                return "liveness" in check.tags
+            end
+        end
+        
+        if !isempty(liveness_checks)
+            # Run liveness checks
+            results = Dict{String, HealthCheckResult}()
+            for (name, check) in liveness_checks
+                results[name] = run_health_check(check, deputy.check_timeout)
+            end
+            
+            # Check if all critical checks pass
+            all_healthy = all(results) do (name, result)
+                check = liveness_checks[name]
+                return result.healthy || !check.critical
+            end
+            
+            # Also check the default liveness (not shutting down)
+            all_healthy = all_healthy && !deputy.shutting_down
+            
+            # Return JSON response if requested
+            accept_header = get(r.headers, "Accept", "")
+            if occursin("application/json", accept_header)
+                response_body = Dict{String, Any}(
+                    "status" => all_healthy ? "healthy" : "unhealthy",
+                    "checks" => Dict(name => to_dict(result) for (name, result) in results),
+                    "shutting_down" => deputy.shutting_down
+                )
+                return HTTP.Response(
+                    all_healthy ? 200 : 503,
+                    ["Content-Type" => "application/json"],
+                    HTTP.bytes(repr(response_body))
+                )
+            else
+                return HTTP.Response(all_healthy ? 200 : 503)
+            end
         else
-            HTTP.Response(503)
+            # Fall back to original behavior
+            return if !deputy.shutting_down
+                HTTP.Response(200)
+            else
+                HTTP.Response(503)
+            end
         end
     end
 end
@@ -91,10 +142,68 @@ end
 function readiness_endpoint(deputy::Deputy)
     return function (r::HTTP.Request)
         @debug "readiness probed"
-        return if deputy.ready
-            HTTP.Response(200)
-        else
-            HTTP.Response(503)
+        
+        # Check for custom readiness checks
+        readiness_checks = lock(deputy.health_checks_lock) do
+            filter(deputy.custom_health_checks) do (name, check)
+                return "readiness" in check.tags
+            end
         end
+        
+        if !isempty(readiness_checks)
+            # Run readiness checks
+            results = Dict{String, HealthCheckResult}()
+            for (name, check) in readiness_checks
+                results[name] = run_health_check(check, deputy.check_timeout)
+            end
+            
+            # Check if all critical checks pass
+            all_healthy = all(results) do (name, result)
+                check = readiness_checks[name]
+                return result.healthy || !check.critical
+            end
+            
+            # Also check the default readiness
+            all_healthy = all_healthy && deputy.ready
+            
+            # Return JSON response if requested
+            accept_header = get(r.headers, "Accept", "")
+            if occursin("application/json", accept_header)
+                response_body = Dict{String, Any}(
+                    "status" => all_healthy ? "healthy" : "unhealthy",
+                    "checks" => Dict(name => to_dict(result) for (name, result) in results),
+                    "ready" => deputy.ready
+                )
+                return HTTP.Response(
+                    all_healthy ? 200 : 503,
+                    ["Content-Type" => "application/json"],
+                    HTTP.bytes(repr(response_body))
+                )
+            else
+                return HTTP.Response(all_healthy ? 200 : 503)
+            end
+        else
+            # Fall back to original behavior
+            return if deputy.ready
+                HTTP.Response(200)
+            else
+                HTTP.Response(503)
+            end
+        end
+    end
+end
+
+function health_endpoint(deputy::Deputy)
+    return function (r::HTTP.Request)
+        @debug "health status requested"
+        
+        status = health_status(deputy)
+        
+        # Always return JSON for comprehensive health endpoint
+        return HTTP.Response(
+            status.healthy ? 200 : 503,
+            ["Content-Type" => "application/json"],
+            HTTP.bytes(repr(to_dict(status)))
+        )
     end
 end
