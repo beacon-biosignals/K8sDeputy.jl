@@ -138,6 +138,15 @@
 end
 
 @testset "supervise.sh shim" begin
+    @testset "jq already present" begin
+        mktempdir() do shim_dest
+            jq = joinpath(shim_dest, "jq")
+            touch(jq)
+            @test_logs (:info,) (:warn,) K8sDeputy.install_supervise_shim(shim_dest)
+            @test String(read(jq)) == ""
+        end
+    end
+
     shim_dest = mktempdir()
     shim_installed = @test_logs (:info,) (:info,) K8sDeputy.install_supervise_shim(shim_dest)
     @test islink(shim_installed)
