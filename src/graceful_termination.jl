@@ -201,7 +201,7 @@ function graceful_terminate(pid::Int32=entrypoint_pid(); wait::Bool=true)
     return nothing
 end
 
-function install_supervise_shim(shims_root::AbstractString)
+function install_supervise_shim(shims_root::AbstractString; install_jq=true)
     src = abspath(joinpath(@__DIR__, "..", "bin", "supervise.sh"))
     isfile(src) || error("supervise.sh shim not found at $src")
 
@@ -210,6 +210,18 @@ function install_supervise_shim(shims_root::AbstractString)
 
     @info "Linking $src -> $dest"
     symlink(src, dest)
+
+    if install_jq
+        # YOLO
+        jq_src = jq().exec[1]
+        jq_dest = joinpath(shims_root, "jq")
+        if isfile(jq_dest)
+            @warn "JQ exists at $jq_dest, skipping..."
+        else
+            @info "Linking $jq_src -> $jq_dest"
+            symlink(jq_src, jq_dest)
+        end
+    end
 
     return dest
 end
