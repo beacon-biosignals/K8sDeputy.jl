@@ -1,31 +1,44 @@
 #!/usr/bin/env bash
 
+timestamp()
+{
+    if [[ -z "$TIMESTAMP_MODE" ]]; then
+        if ! command -v date >/dev/null; then
+            echo 'supervise.sh requires `date`' >&2
+            exit 1
+        fi
+
+        if [[ "$(date +%3N)" =~ ^[0-9]{3}$ ]]; then
+            TIMESTAMP_MODE="date_ns"
+        elif command -v adjtimex >/dev/null && command -v awk >/dev/null; then
+            TIMESTAMP_MODE="adjtimex"
+        else
+            TIMESTAMP_MODE="date_s"
+        fi
+    fi
+
+    case "$TIMESTAMP_MODE" in
+        date_ns)
+            date -u +"%Y-%m-%dT%H:%M:%S.%3NZ"
+            ;;
+        adjtimex)
+            local timestamp_ns="$(adjtimex | awk '/(time.tv_sec|time.tv_usec)/ { printf("%06d", $2) }')"
+            local ms="${timestamp_ns: -6:3}"
+            local timestamp_s="${timestamp_ns::-6}"
+            date -u -d "@$timestamp_s" +"%Y-%m-%dT%H:%M:%S.${ms}Z"
+            ;;
+        date_s)
+            date -u +"%Y-%m-%dT%H:%M:%SZ"
+            ;;
+    esac
+}
+
 # generate structured JSON logs with `timestamp`, `status`, and `message` fields.
 logger()
 {
     local level=${1:-info}
-    if [[ -n $JQ ]]; then
-        jq --raw-input --raw-output --compact-output \
-           --arg status "$level" \
-           '{
-                # theres no jq way I can find to format timestamp w/ subsecond precision
-                # so here we are, rolling our own!
-                timestamp: now |
-                           {
-                               # just the date-time stamp w/o Z
-                               datetime: . | strftime("%Y-%m-%dT%H:%M:%S"),
-                               # ms part of fractional seconds w/o leading 0.
-                               ms: . | modf | .[0] | "\(.)" | .[2:5]
-                           } |
-                           "\(.datetime).\(.ms)Z",
-                status: $status,
-                message: .
-            }' >&2
-    else
-        # provide a _very_ minimal fallback here
-        read -r message
-        echo "{\"status\":\"$level\",\"message\":\"$message\"}" >&2
-    fi
+    read -r message
+    echo "{\"timestamp\":\"$(timestamp)\",\"status\":\"$level\",\"message\":\"$message\"}" >&2
 }
 
 # https://github.com/beacon-biosignals/K8sDeputy.jl/blob/b62e1858a4083ffc8f9f7b10fcb60a77896ae13e/src/graceful_termination.jl#L14
@@ -102,11 +115,6 @@ terminate_supervised()
     echo "PID $child completed with status $status" | logger debug
     exit $status
 }
-
-JQ=$(command -v jq)
-if [[ -z $JQ ]]; then
-    echo "logging works best with jq" | logger warn
-fi
 
 if ! command -v nc >/dev/null; then
     echo "supervise.sh requires netcat (nc)" | logger error
