@@ -4,7 +4,7 @@ timestamp()
 {
     if [[ -z "$TIMESTAMP_MODE" ]]; then
         if ! command -v date >/dev/null; then
-            echo 'supervise.sh requires `date`' >&2
+            echo "supervise.sh requires \`date\`" >&2
             exit 1
         fi
 
@@ -22,7 +22,8 @@ timestamp()
             date -u +"%Y-%m-%dT%H:%M:%S.%3NZ"
             ;;
         adjtimex)
-            local timestamp_us="$(adjtimex | awk '/(time.tv_sec|time.tv_usec)/ { printf("%06d", $2) }')"
+            local timestamp_us
+            timestamp_us="$(adjtimex | awk '/(time.tv_sec|time.tv_usec)/ { printf("%06d", $2) }')"
             local ms="${timestamp_us: -6:3}"
             local timestamp_s="${timestamp_us::-6}"
             date -u -d "@$timestamp_s" +"%Y-%m-%dT%H:%M:%S.${ms}Z"
