@@ -22,9 +22,9 @@ timestamp()
             date -u +"%Y-%m-%dT%H:%M:%S.%3NZ"
             ;;
         adjtimex)
-            local timestamp_ns="$(adjtimex | awk '/(time.tv_sec|time.tv_usec)/ { printf("%06d", $2) }')"
-            local ms="${timestamp_ns: -6:3}"
-            local timestamp_s="${timestamp_ns::-6}"
+            local timestamp_us="$(adjtimex | awk '/(time.tv_sec|time.tv_usec)/ { printf("%06d", $2) }')"
+            local ms="${timestamp_us: -6:3}"
+            local timestamp_s="${timestamp_us::-6}"
             date -u -d "@$timestamp_s" +"%Y-%m-%dT%H:%M:%S.${ms}Z"
             ;;
         date_s)
