@@ -217,7 +217,14 @@ end
         p = run(pipeline(cmd; stdout=buffer, stderr=buffer); wait=false)
         @test timedwait(() -> process_running(p), Second(5)) === :ok
         @test timedwait(Second(10)) do
-            r = HTTP.get("http://$localhost:$port/health/ready"; status_exception=false)
+            r = try
+                HTTP.get("http://$localhost:$port/health/ready"; status_exception=false)
+            catch e
+                # Retry when server has not started listening, resulting in a
+                # `HTTP.ConnectError` (e.g. ECONNREFUSED).
+                e isa HTTP.ConnectError && return false
+                rethrow()
+            end
             return r.status == 200
         end === :ok
 
