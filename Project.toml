@@ -10,7 +10,7 @@ Mocking = "78c3b35d-d492-501b-9361-3d52fe80e533"
 Sockets = "6462fe0b-24de-5631-8697-dd941f90decc"
 
 [compat]
-Aqua = "0.7"
+Aqua = "0.8"
 Dates = "1"
 HTTP = "1, 2"
 Mocking = "0.7, 0.8"
