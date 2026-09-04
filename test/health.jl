@@ -236,12 +236,23 @@ end
         @test p.exitcode == 1
 
         output = String(take!(buffer))
-        expected = """
+
+        # Note: HTTP.jl v2 dropped the `Listening on: ...` startup log message present in
+        # HTTP.jl v1.
+        expected = if pkgversion(HTTP) >= v"2"
+            """
+            [ Info: GRACEFUL TERMINATION HANDLER
+            [ Info: SHUTDOWN HANDLER
+            [ Info: SHUTDOWN COMPLETE
+            """
+        else
+            """
             [ Info: Listening on: $localhost:$port, thread id: 1
             [ Info: GRACEFUL TERMINATION HANDLER
             [ Info: SHUTDOWN HANDLER
             [ Info: SHUTDOWN COMPLETE
             """
+        end
         @test output == expected
     end
 end

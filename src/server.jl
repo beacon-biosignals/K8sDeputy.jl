@@ -31,5 +31,5 @@ function serve!(deputy::Deputy, host=localhost, port::Integer=_default_port(); k
     HTTP.register!(router, "/health/live", liveness_endpoint(deputy))
     HTTP.register!(router, "/health/ready", readiness_endpoint(deputy))
 
-    return HTTP.serve!(router, host, port; kwargs...)
+    return HTTP.serve!(router, string(host), port; kwargs...)
 end
