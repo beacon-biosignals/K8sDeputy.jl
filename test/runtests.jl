@@ -16,7 +16,7 @@ Mocking.activate()
 
 @testset "K8sDeputy.jl" begin
     @testset "Aqua" begin
-        Aqua.test_all(K8sDeputy; ambiguities=false, piracy=false)
+        Aqua.test_all(K8sDeputy; ambiguities=false, piracies=false)
     end
 
     include("graceful_termination.jl")
