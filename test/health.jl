@@ -217,7 +217,14 @@ end
         p = run(pipeline(cmd; stdout=buffer, stderr=buffer); wait=false)
         @test timedwait(() -> process_running(p), Second(5)) === :ok
         @test timedwait(Second(10)) do
-            r = HTTP.get("http://$localhost:$port/health/ready"; status_exception=false)
+            r = try
+                HTTP.get("http://$localhost:$port/health/ready"; status_exception=false)
+            catch e
+                # Retry when server has not started listening, resulting in a
+                # `HTTP.ConnectError` (e.g. ECONNREFUSED).
+                e isa HTTP.ConnectError && return false
+                rethrow()
+            end
             return r.status == 200
         end === :ok
 
@@ -229,12 +236,23 @@ end
         @test p.exitcode == 1
 
         output = String(take!(buffer))
-        expected = """
+
+        # Note: HTTP.jl v2 dropped the `Listening on: ...` startup log message present in
+        # HTTP.jl v1.
+        expected = if pkgversion(HTTP) >= v"2"
+            """
+            [ Info: GRACEFUL TERMINATION HANDLER
+            [ Info: SHUTDOWN HANDLER
+            [ Info: SHUTDOWN COMPLETE
+            """
+        else
+            """
             [ Info: Listening on: $localhost:$port, thread id: 1
             [ Info: GRACEFUL TERMINATION HANDLER
             [ Info: SHUTDOWN HANDLER
             [ Info: SHUTDOWN COMPLETE
             """
+        end
         @test output == expected
     end
 end

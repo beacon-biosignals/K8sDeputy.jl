@@ -44,7 +44,9 @@ jobs:
         arch:
           - x64
         threads:
-          - 1
+          # HTTP.jl recommends "at least one interactive thread when starting a production server"
+          # https://juliaweb.github.io/HTTP.jl/v2.6.7/guides/server/#Interactive-Thread-Pool
+          - "1,1"
     env:
       JULIA_NUM_THREADS: ${{ matrix.threads }}
     steps:
